@@ -1,0 +1,32 @@
+[
+  {
+    "id": "cp_1",
+    "code": "WELCOME10",
+    "discountType": "percentage",
+    "discountValue": 10,
+    "minBill": 1000,
+    "active": true,
+    "usageCount": 24,
+    "createdAt": "2026-08-03T18:22:27.362Z"
+  },
+  {
+    "id": "cp_2",
+    "code": "JOYOVERALL",
+    "discountType": "fixed",
+    "discountValue": 500,
+    "minBill": 2500,
+    "active": true,
+    "usageCount": 58,
+    "createdAt": "2026-08-03T18:22:27.362Z"
+  },
+  {
+    "id": "cp_3",
+    "code": "GROUPFUN15",
+    "discountType": "percentage",
+    "discountValue": 15,
+    "minBill": 4000,
+    "active": false,
+    "usageCount": 12,
+    "createdAt": "2026-08-03T18:22:27.362Z"
+  }
+]

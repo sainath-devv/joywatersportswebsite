@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global lock: Disable all direct client-side reads and writes.
+    // All queries must be made securely via our backend Express API server.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

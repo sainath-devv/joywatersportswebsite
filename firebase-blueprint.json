@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile representation in the database",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the user" },
+        "email": { "type": "string", "description": "The user's registered email" },
+        "passwordHash": { "type": "string", "description": "Bcrypt hash of the password" },
+        "firstName": { "type": "string", "description": "First name of the user" },
+        "lastName": { "type": "string", "description": "Last name of the user" },
+        "phone": { "type": "string", "description": "Contact number" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Registration ISO timestamp" }
+      },
+      "required": ["id", "email", "passwordHash"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Customer booking representation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The JWS prefixed unique reservation ID" },
+        "firstName": { "type": "string", "description": "First name of customer" },
+        "lastName": { "type": "string", "description": "Last name of customer" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "email": { "type": "string", "description": "Email address" },
+        "date": { "type": "string", "description": "Booking slot date" },
+        "time": { "type": "string", "description": "Booking slot time" },
+        "guests": { "type": "number", "description": "Number of guests" },
+        "activities": { "type": "array", "description": "Array of booked sports/activities" },
+        "specialRequest": { "type": "string", "description": "Special request text" },
+        "totalAmount": { "type": "number", "description": "Total amount in INR" },
+        "advancePaid": { "type": "number", "description": "Advance paid amount" },
+        "balancePaid": { "type": "number", "description": "Balance paid amount" },
+        "remainingDue": { "type": "number", "description": "Remaining due amount" },
+        "paymentStatus": { "type": "string", "description": "Status of payment (Completed, Partial Paid, Pending)" },
+        "ticketStatus": { "type": "string", "description": "Status of ticket (Approved, Pending, Canceled)" },
+        "advancePaymentMode": { "type": "string", "description": "Mode of advance payment" },
+        "balancePaymentMode": { "type": "string", "description": "Mode of balance payment" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "ISO timestamp of creation" }
+      },
+      "required": ["id", "firstName", "phone", "date"]
+    },
+    "ChatbotConfig": {
+      "title": "ChatbotConfig",
+      "description": "Chatbot matching response configuration",
+      "type": "object",
+      "properties": {
+        "exact_matches": { "type": "object", "description": "Exact match questions to answers mapping" },
+        "keyword_matches": { "type": "object", "description": "Keyword match rules mapping" }
+      },
+      "required": ["exact_matches", "keyword_matches"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "Registered customer profiles"
+    },
+    "bookings": {
+      "schema": "Booking",
+      "description": "Customer water sports activity bookings"
+    },
+    "chatbot": {
+      "schema": "ChatbotConfig",
+      "description": "Chatbot custom responses settings"
+    }
+  }
+}

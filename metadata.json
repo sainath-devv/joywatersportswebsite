@@ -1,0 +1,6 @@
+{
+  "name": "Joy Water Sports",
+  "description": "Joy Water Sports Varkala offers premium ocean activities, scuba diving, jet skiing, parasailing, and ticket scans.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,10 @@
+# robots.txt for Joy Water Sports Varkala
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /declaration
+Disallow: /ticket/
+
+# Sitemap location
+Sitemap: https://joywatersports.com/sitemap.xml
