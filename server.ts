@@ -389,14 +389,57 @@ function buildSheetPayload(booking: any) {
   const formattedTime = formatTime12Hour(booking.time || booking.trip1Time || '');
 
   return {
-    action: 'ONLINE_BOOKING',
+    action: 'BOOKING',
+    type: 'BOOKING',
+    category: 'BOOKING_DETAILS',
     sheetName: 'Sheet1',
     sheet: 'Sheet1',
     targetSheet: 'Sheet1',
-    type: 'BOOKING',
-    category: 'BOOKING_DETAILS',
+
+    // Form Source Identifier
+    formType: 'Online Booking',
+    source: 'Online Booking',
+    formSource: 'Online Booking',
+    "Form Source": 'Online Booking',
+
+    // Core IDs
     id: id,
     bookingId: id,
+    waiverId: id,
+
+    // Header Matcher Aliases (exact Google Sheet Header Names)
+    "Booking Reference": id,
+    "Booking ID": id,
+    "Booking/Invoice ID": id,
+    "Invoice No": id,
+    "Guest Name": customerName || 'Valued Guest',
+    "Customer Name": customerName || 'Valued Guest',
+    "Name": customerName || 'Valued Guest',
+    "Mobile Number": booking.phone || '',
+    "Phone Number": booking.phone || '',
+    "Phone": booking.phone || '',
+    "Email Address": booking.email || '',
+    "Email": booking.email || '',
+    "Date & Time": `${formattedDate} ${formattedTime}`.trim(),
+    "Date": formattedDate,
+    "Time": formattedTime,
+    "Sailing Date": formattedDate,
+    "Date of Sailing": formattedDate,
+    "Time Slot": formattedTime,
+    "Activities": actStr,
+    "Activity": actStr,
+    "Package": actStr,
+    "Total Bill": booking.totalAmount || 0,
+    "Total Amount": booking.totalAmount || 0,
+    "Advance Paid": booking.advancePaid || 0,
+    "Balance Paid": booking.balancePaid || 0,
+    "Remaining Due": booking.remainingDue || 0,
+    "Payment Status": booking.paymentStatus || 'Pending',
+    "Payment Mode": booking.advancePaymentMode || booking.paymentMode || 'Cash',
+    "Communication Address": booking.communicationAddress || booking.address || '',
+    "Address": booking.communicationAddress || booking.address || '',
+
+    // Standard properties
     bookedAt: booking.createdAt ? new Date(booking.createdAt).toLocaleString('en-GB') : (booking.bookedAt || now.toLocaleString('en-GB')),
     customerName: customerName || 'Valued Guest',
     guestName: customerName || 'Valued Guest',
