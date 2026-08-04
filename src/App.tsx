@@ -5,6 +5,7 @@ import JoyPreloader from './components/common/JoyPreloader';
 import { NetworkErrorProvider } from './context/NetworkErrorContext';
 import { AuthProvider } from './context/AuthContext';
 import NetworkErrorNotification from './components/common/NetworkErrorNotification';
+import FloatingSocialBar from './components/common/FloatingSocialBar';
 import { silentTokenRefresh } from './lib/auth';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -42,6 +43,7 @@ export default function App() {
           )}
           <BrowserRouter>
             <NetworkErrorNotification />
+            <FloatingSocialBar />
             <Suspense fallback={<MinimalistLoader message="Loading" />}>
               <Routes>
                 <Route path="/" element={<LandingPage />} />
