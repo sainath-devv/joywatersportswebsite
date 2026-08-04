@@ -250,14 +250,16 @@ safeReadJson(COUPONS_FILE, defaultCoupons);
 // ========================================
 // GOOGLE SHEETS SYNC & RETRY QUEUE
 // ========================================
-const DEFAULT_GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyZJbtM_RBBn2nWH7yxDqo5DtAgo_P63upyUgGXWbpIWZgfmwMSt4ORBKR9qOq_TWlu/exec';
+const DEFAULT_GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbx5d0sIlWfrCecgrTOrST4r60_yWnPM_28zoYKTnUFpSeizwkJZfX7kx23AMtKDnRYF5A/exec';
 const DEFAULT_DECLARATION_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbx5d0sIlWfrCecgrTOrST4r60_yWnPM_28zoYKTnUFpSeizwkJZfX7kx23AMtKDnRYF5A/exec';
 const DEFAULT_USER_LOGIN_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyAnJHYBUOXHguJh7mfaf4EVCl8B5AoKbQy39ArPNruunkmhFTGDiXPPFjoaA4wiBWyqg/exec';
 
 async function getActiveGoogleSheetsUrl(): Promise<string> {
   try {
     const customUrl = await getAdminConfig('google_sheets_url');
-    if (customUrl && customUrl.trim()) return customUrl.trim();
+    if (customUrl && customUrl.trim() && !customUrl.includes('AKfycbz4QHrY') && !customUrl.includes('AKfycbyZJbtM')) {
+      return customUrl.trim();
+    }
   } catch (e) {}
   return process.env.GOOGLE_SHEETS_URL?.trim() || DEFAULT_GOOGLE_SHEETS_URL;
 }
@@ -265,7 +267,9 @@ async function getActiveGoogleSheetsUrl(): Promise<string> {
 async function getActiveDeclarationSheetsUrl(): Promise<string> {
   try {
     const customUrl = await getAdminConfig('declaration_sheets_url');
-    if (customUrl && customUrl.trim()) return customUrl.trim();
+    if (customUrl && customUrl.trim() && !customUrl.includes('AKfycbz4QHrY') && !customUrl.includes('AKfycbyZJbtM')) {
+      return customUrl.trim();
+    }
   } catch (e) {}
   return process.env.DECLARATION_SHEETS_URL?.trim() || DEFAULT_DECLARATION_SHEETS_URL;
 }
