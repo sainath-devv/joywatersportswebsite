@@ -16,17 +16,17 @@ export default function Footer() {
               <img src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx" alt="Logo" loading="lazy" decoding="async" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
               <span className="text-xl sm:text-2xl font-display tracking-widest text-white">Joy Water Sports</span>
             </div>
-            <p className="text-white/60 text-sm sm:text-base leading-relaxed mb-6 sm:mb-8 max-w-sm">
-              We help travelers find accommodations, plan relaxing vacations and embark on exciting water sports adventures in paradise.
+            <p className="text-white/70 text-sm sm:text-base leading-relaxed mb-6 sm:mb-8 max-w-sm font-light">
+              Varkala's premier water sports and coastal adventure hub. Offering certified instructors, top-grade jet skis, parasailing, and unforgettable cliff-side ocean experiences.
             </p>
             <div className="flex items-center gap-4">
-              <a href="#footer" onClick={(e) => e.preventDefault()} className="w-8 h-8 sm:w-10 sm:h-10 bg-white/5 rounded-full flex items-center justify-center text-white/80 hover:bg-sky-blue hover:text-white hover:scale-110 transition-all border border-white/10">
+              <a href="https://www.instagram.com/joywatersportsvarkala/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 sm:w-10 sm:h-10 bg-white/5 rounded-full flex items-center justify-center text-white/80 hover:bg-sky-blue hover:text-white hover:scale-110 transition-all border border-white/10" aria-label="Instagram">
                 <Instagram size={16} />
               </a>
-              <a href="#footer" onClick={(e) => e.preventDefault()} className="w-8 h-8 sm:w-10 sm:h-10 bg-white/5 rounded-full flex items-center justify-center text-white/80 hover:bg-sky-blue hover:text-white hover:scale-110 transition-all border border-white/10">
+              <a href="https://www.linkedin.com/company/joywatersports-varkala/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 sm:w-10 sm:h-10 bg-white/5 rounded-full flex items-center justify-center text-white/80 hover:bg-sky-blue hover:text-white hover:scale-110 transition-all border border-white/10" aria-label="LinkedIn">
                 <Linkedin size={16} />
               </a>
-              <a href="#footer" onClick={(e) => e.preventDefault()} className="w-8 h-8 sm:w-10 sm:h-10 bg-white/5 rounded-full flex items-center justify-center text-white/80 hover:bg-sky-blue hover:text-white hover:scale-110 transition-all border border-white/10">
+              <a href="https://www.youtube.com/channel/UCAWsxntmXJQdkdpGgEGEN_A" target="_blank" rel="noopener noreferrer" className="w-8 h-8 sm:w-10 sm:h-10 bg-white/5 rounded-full flex items-center justify-center text-white/80 hover:bg-sky-blue hover:text-white hover:scale-110 transition-all border border-white/10" aria-label="YouTube">
                 <Youtube size={16} />
               </a>
             </div>
@@ -87,7 +87,7 @@ export default function Footer() {
                 </div>
                 <div>
                   <p className="text-white/90 text-[11px] sm:text-[13px] font-bold mb-0.5 sm:mb-1 uppercase tracking-wider">Email</p>
-                  <p className="text-white/60 text-xs sm:text-sm leading-relaxed">hello@joywatersports.com</p>
+                  <a href="mailto:joywatersports@gmail.com" className="text-white/90 hover:text-sky-blue text-xs sm:text-sm font-medium leading-relaxed transition-colors block">joywatersports@gmail.com</a>
                 </div>
               </li>
             </ul>
