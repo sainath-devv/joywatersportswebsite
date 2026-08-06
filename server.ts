@@ -251,7 +251,7 @@ safeReadJson(COUPONS_FILE, defaultCoupons);
 // GOOGLE SHEETS SYNC & RETRY QUEUE
 // ========================================
 const DEFAULT_GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbx5d0sIlWfrCecgrTOrST4r60_yWnPM_28zoYKTnUFpSeizwkJZfX7kx23AMtKDnRYF5A/exec';
-const DEFAULT_DECLARATION_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbx5d0sIlWfrCecgrTOrST4r60_yWnPM_28zoYKTnUFpSeizwkJZfX7kx23AMtKDnRYF5A/exec';
+const DEFAULT_DECLARATION_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwltnDwvfSKPuHdJqmXtXBfgU2xRZJ0SOSadQbtIeIxoX2K1foJJNCOBuDMGspZEt5s6A/exec';
 const DEFAULT_USER_LOGIN_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyAnJHYBUOXHguJh7mfaf4EVCl8B5AoKbQy39ArPNruunkmhFTGDiXPPFjoaA4wiBWyqg/exec';
 
 async function getActiveGoogleSheetsUrl(): Promise<string> {
@@ -651,10 +651,22 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
     : rawGuardianSig;
 
   const guestNameVal = waiver.guestName || waiver.name || waiver.customerName || '';
+  const totalGuestsVal = parseInt(String(waiver.totalGuests || waiver.guestCount || (Array.isArray(waiver.guestList) ? waiver.guestList.length : 1))) || 1;
+  let guestNamesAndAgesVal = '';
+  if (Array.isArray(waiver.guestList) && waiver.guestList.length > 0) {
+    guestNamesAndAgesVal = waiver.guestList
+      .filter((g: any) => g && (g.name || g.age))
+      .map((g: any, i: number) => `${i + 1}. ${g.name || 'Guest'}${g.age ? ` (${g.age} yrs)` : ''}`)
+      .join(', ');
+  } else {
+    guestNamesAndAgesVal = guestNameVal;
+  }
+
   const commAddressVal = waiver.communicationAddress || waiver.address || '';
   const phoneVal = waiver.phone || waiver.mobile || '';
   const emailVal = waiver.email || '';
-  const agreementDateVal = waiver.agreementDate || waiver.date || new Date().toISOString().split('T')[0];
+  const agreementDateVal = waiver.declarationDate || waiver.agreementDate || waiver.date || new Date().toISOString().split('T')[0];
+  const declarationTimeVal = waiver.declarationTime || waiver.declarationFillingTime || waiver.fillingTime || waiver.time || new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
   const hasMinorVal = (waiver.hasMinor || waiver.hasGuardian || waiver.guardianName) ? 'Yes' : 'No';
   const guardianNameVal = waiver.guardianName || '';
   const guardianAddressVal = waiver.guardianAddress || '';
@@ -668,6 +680,17 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
   const boatVal = waiver.boat || (waiver.boatG1 || waiver.boatG1_1 || waiver.boatG1_2 || waiver.boatG1_3 ? 'G1' : '');
   const timestampVal = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
+  let activitiesVal = '';
+  if (Array.isArray(waiver.activities)) {
+    activitiesVal = waiver.activities.join(', ');
+  } else if (typeof waiver.activities === 'string') {
+    activitiesVal = waiver.activities;
+  } else if (waiver.selectedActivities) {
+    activitiesVal = Array.isArray(waiver.selectedActivities) ? waiver.selectedActivities.join(', ') : String(waiver.selectedActivities);
+  } else {
+    activitiesVal = 'Parasailing';
+  }
+
   const payload = {
     action: actionType,
     sheetName: 'Declarations',
@@ -679,6 +702,13 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
     id: targetId,
     bookingId: bookingId || 'N/A',
 
+    // Activities
+    activities: activitiesVal,
+    selectedActivities: activitiesVal,
+    "Activities": activitiesVal,
+    "Selected Activities": activitiesVal,
+    "activities_selected": activitiesVal,
+
     // Form Source Identifier
     formType: waiver.formType || waiver.source || 'Declaration Form',
     source: waiver.formType || waiver.source || 'Declaration Form',
@@ -689,6 +719,9 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
     guestName: guestNameVal,
     name: guestNameVal,
     customerName: guestNameVal,
+    totalGuests: totalGuestsVal,
+    guestList: guestNamesAndAgesVal,
+    guestNamesAndAges: guestNamesAndAgesVal,
     communicationAddress: commAddressVal,
     address: commAddressVal,
     phone: phoneVal,
@@ -708,7 +741,11 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
     isSigned: Boolean(finalSig),
 
     agreementDate: agreementDateVal,
+    declarationDate: agreementDateVal,
     date: agreementDateVal,
+    declarationTime: declarationTimeVal,
+    declarationFillingTime: declarationTimeVal,
+    fillingTime: declarationTimeVal,
 
     // Guardian Details (camelCase)
     hasMinor: hasMinorVal,
@@ -740,6 +777,9 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
     "Guest Name": guestNameVal,
     "Name": guestNameVal,
     "Customer Name": guestNameVal,
+    "Total Guests": totalGuestsVal,
+    "Guest List": guestNamesAndAgesVal,
+    "Guest Names & Ages": guestNamesAndAgesVal,
     "Communication Address": commAddressVal,
     "Address": commAddressVal,
     "Phone": phoneVal,
@@ -749,7 +789,11 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
     "Signature": finalSig,
     "Guest Signature": finalSig,
     "Agreement Date": agreementDateVal,
+    "Declaration Date": agreementDateVal,
     "Date": agreementDateVal,
+    "Declaration Time": declarationTimeVal,
+    "Declaration Time (24h)": declarationTimeVal,
+    "Declaration Filling Time": declarationTimeVal,
     "Has Minor": hasMinorVal,
     "Guardian Name": guardianNameVal,
     "Guardian Address": guardianAddressVal,
@@ -771,10 +815,14 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
     "waiver_id": targetId,
     "booking_id": bookingId || 'N/A',
     "guest_name": guestNameVal,
+    "total_guests": totalGuestsVal,
+    "guest_list": guestNamesAndAgesVal,
     "communication_address": commAddressVal,
     "phone_number": phoneVal,
     "guest_signature": finalSig,
     "agreement_date": agreementDateVal,
+    "declaration_date": agreementDateVal,
+    "declaration_time": declarationTimeVal,
     "has_minor": hasMinorVal,
     "guardian_name": guardianNameVal,
     "guardian_address": guardianAddressVal,
@@ -793,6 +841,8 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
       targetId,
       bookingId || 'N/A',
       guestNameVal,
+      totalGuestsVal,
+      guestNamesAndAgesVal,
       commAddressVal,
       phoneVal,
       emailVal,
@@ -1523,6 +1573,9 @@ async function saveWaiverAgreement(waiver: any) {
   const waiverId = waiver.id || ("WAV-" + waiver.bookingId);
   const bookingId = waiver.bookingId || waiverId;
 
+  const totalGuestsVal = parseInt(String(waiver.totalGuests || waiver.guestCount || (Array.isArray(waiver.guestList) ? waiver.guestList.length : 1))) || 1;
+  const guestListVal = typeof waiver.guestList === 'string' ? waiver.guestList : JSON.stringify(waiver.guestList || []);
+
   const activePool = await getDbPool();
   if (activePool) {
     try {
@@ -1531,9 +1584,10 @@ async function saveWaiverAgreement(waiver: any) {
         INSERT INTO waiver_agreements (
           id, booking_id, guest_name, communication_address, phone, email, signature, agreement_date,
           has_minor, guardian_name, guardian_address, guardian_phone, guardian_email, guardian_signature, guardian_agreement_date,
-          date_of_sailing, invoice_no, boarding_pass_no, trip_1_time, trip_2_time, trip_3_time, trip_4_time, boat_g1
+          date_of_sailing, invoice_no, boarding_pass_no, trip_1_time, trip_2_time, trip_3_time, trip_4_time, boat_g1,
+          total_guests, guest_list
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
         )
         ON CONFLICT (id) DO UPDATE SET
           booking_id = EXCLUDED.booking_id,
@@ -1557,11 +1611,14 @@ async function saveWaiverAgreement(waiver: any) {
           trip_2_time = EXCLUDED.trip_2_time,
           trip_3_time = EXCLUDED.trip_3_time,
           trip_4_time = EXCLUDED.trip_4_time,
-          boat_g1 = EXCLUDED.boat_g1
+          boat_g1 = EXCLUDED.boat_g1,
+          total_guests = EXCLUDED.total_guests,
+          guest_list = EXCLUDED.guest_list
       `, [
         waiverId, bookingId, waiver.guestName || waiver.guest_name || '', waiver.communicationAddress || waiver.communication_address || 'Digitally Signed', waiver.phone || '', waiver.email || '', waiver.signature || waiver.guestName || 'Signed', waiver.agreementDate || waiver.agreement_date || new Date().toISOString().split('T')[0],
         Boolean(waiver.hasMinor || waiver.has_minor), waiver.guardianName || waiver.guardian_name || '', waiver.guardianAddress || waiver.guardian_address || '', waiver.guardianPhone || waiver.guardian_phone || '', waiver.guardianEmail || waiver.guardian_email || '', waiver.guardianSignature || waiver.guardian_signature || '', waiver.guardianAgreementDate || waiver.guardian_agreement_date || '',
-        waiver.dateOfSailing || waiver.date_of_sailing || '', waiver.invoiceNo || waiver.invoice_no || bookingId, waiver.boardingPassNo || waiver.boarding_pass_no || ("BP-" + bookingId), waiver.trip1Time || waiver.trip_1_time || '', waiver.trip2Time || waiver.trip_2_time || '', waiver.trip3Time || waiver.trip_3_time || '', waiver.trip4Time || waiver.trip_4_time || '', Boolean(waiver.boatG1 || waiver.boat_g1)
+        waiver.dateOfSailing || waiver.date_of_sailing || '', waiver.invoiceNo || waiver.invoice_no || bookingId, waiver.boardingPassNo || waiver.boarding_pass_no || ("BP-" + bookingId), waiver.trip1Time || waiver.trip_1_time || '', waiver.trip2Time || waiver.trip_2_time || '', waiver.trip3Time || waiver.trip_3_time || '', waiver.trip4Time || waiver.trip_4_time || '', Boolean(waiver.boatG1 || waiver.boat_g1),
+        totalGuestsVal, guestListVal
       ]);
       console.log(`✅ [Neon/PostgreSQL] Waiver agreement ${waiverId} saved successfully!`);
     } catch (e: any) {
@@ -1575,7 +1632,9 @@ async function saveWaiverAgreement(waiver: any) {
   const updatedEntry = {
     ...waiver,
     id: waiverId,
-    bookingId
+    bookingId,
+    totalGuests: totalGuestsVal,
+    guestList: waiver.guestList || []
   };
   if (idx !== -1) {
     data[idx] = { ...data[idx], ...updatedEntry };
@@ -1594,10 +1653,16 @@ async function getWaiverByBookingId(bookingId: string) {
       const { rows } = await activePool.query('SELECT * FROM waiver_agreements WHERE booking_id = $1 OR id = $1', [bookingId]);
       if (rows.length > 0) {
         const r = rows[0];
+        let parsedGuestList = [];
+        try {
+          parsedGuestList = typeof r.guest_list === 'string' ? JSON.parse(r.guest_list) : (r.guest_list || []);
+        } catch (e) {}
         return {
           id: r.id,
           bookingId: r.booking_id,
           guestName: r.guest_name,
+          totalGuests: r.total_guests || 1,
+          guestList: parsedGuestList,
           communicationAddress: r.communication_address,
           phone: r.phone,
           email: r.email,
@@ -2803,12 +2868,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'jwt_secret_jws_default_12345';
         id: bookingId, 
         guestName: effectiveGuestName,
         communicationAddress: effectiveAddress,
-        signature: effectiveSignature,
+        signature: signature || '',
         agreementDate: effectiveAgreementDate,
-        declarationAgreed: true,
+        declarationAgreed: false,
         createdAt: new Date().toISOString(),
         paymentStatus,
-        ticketStatus: 'Pending',
+        ticketStatus: 'PENDING_DECLARATION',
         advancePaid: advPaid,
         balancePaid: balPaid,
         advancePaymentMode: req.body.advancePaymentMode || 'Online',
@@ -2818,34 +2883,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'jwt_secret_jws_default_12345';
       
       await saveBooking(newBooking);
 
-      // Save corresponding Waiver record locally linked with the same bookingId
-      const waiverRecord = {
-        id: "WAV" + crypto.randomBytes(4).toString('hex').toUpperCase(),
-        bookingId,
-        guestName: effectiveGuestName,
-        communicationAddress: effectiveAddress,
-        phone,
-        email,
-        signature: effectiveSignature,
-        agreementDate: effectiveAgreementDate,
-        hasMinor: !!hasGuardian,
-        guardianName: guardianName || '',
-        guardianAddress: guardianAddress || '',
-        guardianPhone: guardianPhone || '',
-        guardianEmail: guardianEmail || '',
-        guardianSignature: guardianSignature || '',
-        guardianAgreementDate: guardianAgreementDate || effectiveAgreementDate,
-        dateOfSailing: date,
-        invoiceNo: bookingId,
-        boardingPassNo: `BP-${bookingId}`,
-        declarationAgreed: true,
-        createdAt: new Date().toISOString()
-      };
-      
-      saveWaiverAgreement(waiverRecord).catch(err => console.error(`Async waiver save error for ${bookingId}:`, err));
-      sendWaiverToGoogleSheets(waiverRecord).catch(err => console.error(`Async Declaration Sheets sync error for ${bookingId}:`, err));
-
-      // Sync online activity booking data exclusively to Sheet1
+      // Sync online activity booking data to Google Sheets
       sendToGoogleSheets(newBooking).catch(err => console.error(`Async Google Sheets sync error for ${newBooking.id}:`, err));
       
       res.json({ success: true, booking: newBooking });
@@ -2868,18 +2906,21 @@ const JWT_SECRET = process.env.JWT_SECRET || 'jwt_secret_jws_default_12345';
       await saveWaiverAgreement(waiver);
       const synced = await sendWaiverToGoogleSheets(waiver);
 
-      // If associated with an existing booking ID, update signature locally in DB
+      // If associated with an existing booking ID, update booking status to CONFIRMED
       const targetBookingId = waiver.bookingId || waiver.invoiceNo;
       if (targetBookingId && targetBookingId !== 'N/A') {
         const existingBooking = await getBookingById(targetBookingId);
         if (existingBooking) {
           const updatedBooking = {
             ...existingBooking,
+            ticketStatus: 'CONFIRMED',
+            declarationAgreed: true,
+            guests: waiver.totalGuests || existingBooking.guests || 1,
             signature: waiver.signature || waiver.guestSignature || existingBooking.signature || '',
-            guestSignature: waiver.signature || waiver.guestSignature || existingBooking.guestSignature || '',
-            declarationAgreed: true
+            guestSignature: waiver.signature || waiver.guestSignature || existingBooking.guestSignature || ''
           };
           await saveBooking(updatedBooking);
+          sendToGoogleSheets(updatedBooking).catch(err => console.error(`Async Google Sheets re-sync error for ${updatedBooking.id}:`, err));
         }
       }
 
@@ -2905,6 +2946,64 @@ const JWT_SECRET = process.env.JWT_SECRET || 'jwt_secret_jws_default_12345';
   };
   app.get('/api/waivers/:bookingId', getWaiverHandler);
   app.get('/api/waiver/:bookingId', getWaiverHandler);
+
+  // Export Declarations Excel
+  app.get('/api/waivers-export', adminAuth, async (req, res) => {
+    try {
+      const activePool = await getDbPool();
+      let waivers: any[] = [];
+      if (activePool) {
+        try {
+          const { rows } = await activePool.query('SELECT * FROM waiver_agreements ORDER BY created_at DESC');
+          waivers = rows;
+        } catch (e) {}
+      }
+      if (waivers.length === 0) {
+        waivers = safeReadJson(WAIVER_AGREEMENTS_FILE, []);
+      }
+
+      const formatted = waivers.map((w: any) => {
+        let gList = [];
+        try {
+          gList = typeof w.guest_list === 'string' ? JSON.parse(w.guest_list) : (w.guestList || []);
+        } catch (e) {}
+        const guestNamesAndAges = Array.isArray(gList) && gList.length > 0
+          ? gList.map((g: any, i: number) => `${i + 1}. ${g.name || 'Guest'}${g.age ? ` (${g.age} yrs)` : ''}`).join(', ')
+          : (w.guest_name || w.guestName || '');
+
+        return {
+          "Waiver ID": w.id || '',
+          "Booking ID / Invoice": w.booking_id || w.bookingId || w.invoice_no || '',
+          "Boarding Pass": w.boarding_pass_no || w.boardingPassNo || '',
+          "Main Guest": w.guest_name || w.guestName || '',
+          "Total Guests": w.total_guests || w.totalGuests || (Array.isArray(gList) ? gList.length : 1),
+          "Guest List (Names & Ages)": guestNamesAndAges,
+          "Phone": w.phone || '',
+          "Email": w.email || '',
+          "Address": w.communication_address || w.communicationAddress || '',
+          "Date of Sailing": w.date_of_sailing || w.dateOfSailing || w.agreement_date || '',
+          "Trip Time": w.trip_1_time || w.trip1Time || '',
+          "Signed": w.signature ? 'Yes' : 'No',
+          "Minor Included": w.has_minor || w.hasMinor ? 'Yes' : 'No',
+          "Guardian Name": w.guardian_name || w.guardianName || '',
+          "Guardian Phone": w.guardian_phone || w.guardianPhone || '',
+          "Submitted At": w.created_at || w.createdAt || ''
+        };
+      });
+
+      const worksheet = xlsx.utils.json_to_sheet(formatted);
+      const workbook = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(workbook, worksheet, 'Declarations');
+
+      const excelBuffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Disposition', 'attachment; filename="declaration_forms.xlsx"');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(excelBuffer);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to export declaration waivers' });
+    }
+  });
 
   // Edit Booking
   app.put('/api/bookings/:id', adminAuth, async (req, res) => {
