@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Printer, CheckCircle2, ArrowLeft, RotateCcw, PenTool, FileText, Anchor, Languages, Ticket, ShieldCheck, ArrowRight, Search } from 'lucide-react';
+import { Printer, CheckCircle2, ArrowLeft, RotateCcw, PenTool, FileText, Anchor, Languages, Ticket, ShieldCheck, ArrowRight, Search, Download, Loader2, Check } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { formatSafeErrorMessage } from '../lib/errorHandler';
 import SignaturePad from '../components/common/SignaturePad';
 
@@ -71,6 +73,16 @@ const languages: { key: LanguageKey; label: string; nativeName: string }[] = [
   { key: 'bn', label: 'Bengali', nativeName: 'বাংলা' },
 ];
 
+const DECLARATION_ACTIVITIES = [
+  'Parasailing',
+  'Speed Boat',
+  'Banana Boat',
+  'Crazy Sofa',
+  'ATV',
+  'Flying Fish',
+  'Jet Ski'
+];
+
 const translations: Record<LanguageKey, Translations> = {
   en: {
     title: "JOY WATER SPORTS",
@@ -80,7 +92,7 @@ const translations: Record<LanguageKey, Translations> = {
     printForm: "Print Form",
     backToHome: "Back to Home",
     submittedSuccessTitle: "Liability Waiver & Declaration Submitted Successfully!",
-    submittedSuccessMsg: (name) => `Thank you, ${name}. Your waiver agreement has been recorded and attached to your booking pass.`,
+    submittedSuccessMsg: (name) => `Thank you, ${name}. Your liability waiver and declaration agreement has been recorded successfully.`,
     printCompleted: "Print Completed Copy",
     returnHome: "Return to Home Page",
     errName: "Please enter Guest Name.",
@@ -448,6 +460,37 @@ export default function DeclarationForm() {
     return list;
   });
 
+  // Activities Selection State
+  const [selectedActivities, setSelectedActivities] = useState<string[]>(() => {
+    const actParam = searchParams.get('activities') || searchParams.get('activity');
+    if (actParam) {
+      const parsed = actParam.split(',').map(s => s.trim()).filter(Boolean);
+      if (parsed.length > 0) return parsed;
+    }
+    return ['Parasailing'];
+  });
+
+  const handleActivityToggle = (activityName: string) => {
+    setSelectedActivities(prev => {
+      if (prev.includes(activityName)) {
+        if (prev.length === 1) return prev; // keep at least 1 activity selected
+        return prev.filter(a => a !== activityName);
+      } else {
+        return [...prev, activityName];
+      }
+    });
+  };
+
+  // Helper for 24-hour format current IST time
+  const get24HourISTTime = () => {
+    return new Date().toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   // Form State matching original waiver layout
   const [formData, setFormData] = useState({
     guestName: searchParams.get('name') || '',
@@ -456,6 +499,7 @@ export default function DeclarationForm() {
     email: searchParams.get('email') || '',
     signature: '',
     agreementDate: searchParams.get('date') || new Date().toISOString().split('T')[0],
+    declarationTime: searchParams.get('declarationTime') || searchParams.get('time') || get24HourISTTime(),
 
     // Guardian details
     hasGuardian: false,
@@ -635,16 +679,26 @@ export default function DeclarationForm() {
     setErrorMessage('');
 
     try {
+      const activitiesStr = selectedActivities.join(', ');
+      const directDeclarationScriptUrl = 'https://script.google.com/macros/s/AKfycbwltnDwvfSKPuHdJqmXtXBfgU2xRZJ0SOSadQbtIeIxoX2K1foJJNCOBuDMGspZEt5s6A/exec';
+
+      const current24hTime = formData.declarationTime || get24HourISTTime();
+
       const payload = {
         bookingId: formData.invoiceNo || bookingIdParam || `WALKIN-${Date.now()}`,
         guestName: formData.guestName,
         totalGuests: guestCount,
         guestList: guestList,
+        activities: selectedActivities,
+        selectedActivities: activitiesStr,
         communicationAddress: formData.communicationAddress || 'Onsite Guest',
         phone: formData.phone,
         email: formData.email,
         signature: formData.signature,
         agreementDate: formData.agreementDate,
+        declarationDate: formData.agreementDate,
+        declarationTime: current24hTime,
+        declarationFillingTime: current24hTime,
         hasMinor: formData.hasGuardian,
         guardianName: formData.guardianName,
         guardianAddress: formData.guardianAddress,
@@ -666,6 +720,33 @@ export default function DeclarationForm() {
         action: bookingIdParam ? 'ONLINE_DECLARATION' : 'GENERAL_DECLARATION'
       };
 
+      // Direct backup sync to user's Google Apps Script web app
+      try {
+        fetch(directDeclarationScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...payload,
+            activities: activitiesStr,
+            "Activities": activitiesStr,
+            "Selected Activities": activitiesStr,
+            guestNamesAndAges: guestList.map((g, i) => `${i + 1}. ${g.name || 'Guest'}${g.age ? ` (${g.age} yrs)` : ''}`).join(', '),
+            timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+            "Guest Name": formData.guestName,
+            "Phone": formData.phone,
+            "Email": formData.email,
+            "Total Guests": guestCount,
+            "Agreement Date": formData.agreementDate,
+            "Declaration Date": formData.agreementDate,
+            "Declaration Time": current24hTime,
+            "Declaration Time (24h)": current24hTime,
+            "Declaration Filling Time": current24hTime,
+            "Signature": formData.signature
+          })
+        }).catch(() => {});
+      } catch (e) {}
+
       const res = await fetch('/api/waivers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -684,8 +765,181 @@ export default function DeclarationForm() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('declaration-printable-area');
+    if (!element) return;
+
+    setIsGeneratingPdf(true);
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        onclone: (clonedDoc) => {
+          const sanitizeCssText = (str: string) => {
+            return str
+              .replace(/oklab\([^)]+\)/gi, '#0f172a')
+              .replace(/oklch\([^)]+\)/gi, '#0f172a')
+              .replace(/color-mix\([^)]+\)/gi, '#0f172a')
+              .replace(/color\([^)]+\)/gi, '#0f172a')
+              .replace(/light-dark\([^)]+\)/gi, '#0f172a');
+          };
+
+          // Gather all CSS rules and remove original style tags so html2canvas doesn't read unsanitized CSSStyleSheet rules
+          let aggregatedCss = '';
+
+          const styleEls = Array.from(clonedDoc.querySelectorAll('style'));
+          styleEls.forEach((s) => {
+            if (s.textContent) {
+              aggregatedCss += s.textContent + '\n';
+            }
+            if (s.parentNode) s.parentNode.removeChild(s);
+          });
+
+          const linkEls = Array.from(clonedDoc.querySelectorAll('link[rel="stylesheet"]'));
+          linkEls.forEach((link) => {
+            try {
+              const sheet = Array.from(document.styleSheets).find(
+                (ss) => ss.href === (link as HTMLLinkElement).href || ss.ownerNode === link
+              );
+              if (sheet) {
+                try {
+                  const cssRules = Array.from(sheet.cssRules || []).map((r) => r.cssText).join('\n');
+                  aggregatedCss += cssRules + '\n';
+                } catch {
+                  // cross-origin
+                }
+              }
+            } catch {
+              // ignore
+            }
+            if (link.parentNode) link.parentNode.removeChild(link);
+          });
+
+          // Inject single clean, sanitized style tag
+          const cleanStyle = clonedDoc.createElement('style');
+          cleanStyle.textContent = sanitizeCssText(aggregatedCss);
+          clonedDoc.head.appendChild(cleanStyle);
+
+          // Sanitize inline style attributes on all cloned elements
+          const allEls = clonedDoc.querySelectorAll('*');
+          allEls.forEach((el) => {
+            const inlineStyle = el.getAttribute('style');
+            if (inlineStyle && /(oklab|oklch|color-mix|color|light-dark)\([^)]+\)/i.test(inlineStyle)) {
+              el.setAttribute('style', sanitizeCssText(inlineStyle));
+            }
+          });
+
+          const clonedArea = clonedDoc.getElementById('declaration-printable-area');
+          if (clonedArea) {
+            clonedArea.style.display = 'block';
+            clonedArea.style.maxWidth = '800px';
+            clonedArea.style.padding = '24px';
+            clonedArea.style.backgroundColor = '#ffffff';
+
+            const form = clonedArea.querySelector('form');
+            if (form) {
+              form.classList.remove('screen-only-hide-when-submitted');
+              form.style.display = 'block';
+              form.style.visibility = 'visible';
+            }
+
+            // Reveal hidden print blocks like Selected Activities summary
+            const printBlockElements = clonedArea.querySelectorAll('.hidden.print\\:block');
+            printBlockElements.forEach((el) => {
+              (el as HTMLElement).style.display = 'block';
+            });
+
+            // Convert interactive inputs/selects into visible text blocks so html2canvas captures filled values cleanly
+            const inputs = clonedArea.querySelectorAll('input, textarea, select');
+            inputs.forEach((inputEl) => {
+              const el = inputEl as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+              if (el.type === 'checkbox' || el.type === 'radio' || el.type === 'hidden' || el.type === 'submit') {
+                return;
+              }
+              const val = el.value || '';
+              const textSpan = clonedDoc.createElement('span');
+              textSpan.className = 'font-bold text-black text-xs sm:text-sm block py-1 border-b border-black';
+              textSpan.textContent = val || '—';
+              if (el.parentNode) {
+                el.style.display = 'none';
+                el.parentNode.insertBefore(textSpan, el);
+              }
+            });
+
+            // Handle Signatures in PDF export
+            if (formData.signature) {
+              const sigFields = clonedArea.querySelectorAll('#field-signature');
+              sigFields.forEach((field) => {
+                if (formData.signature.startsWith('data:image')) {
+                  const img = clonedDoc.createElement('img');
+                  img.src = formData.signature;
+                  img.className = 'max-h-16 w-auto object-contain border-b border-black py-1 my-1';
+                  field.appendChild(img);
+                  const canvasEl = field.querySelector('canvas');
+                  if (canvasEl) canvasEl.style.display = 'none';
+                } else if (formData.signature.startsWith('typed:')) {
+                  const typedVal = formData.signature.replace('typed:', '');
+                  const span = clonedDoc.createElement('span');
+                  span.className = 'font-serif italic font-bold text-base text-black block py-1 border-b border-black';
+                  span.textContent = typedVal;
+                  field.appendChild(span);
+                }
+              });
+            }
+
+            const printHiddenElements = clonedArea.querySelectorAll('.print\\:hidden');
+            printHiddenElements.forEach((el) => {
+              (el as HTMLElement).style.display = 'none';
+            });
+
+            const metaBar = clonedArea.querySelector('.print\\:flex');
+            if (metaBar) {
+              (metaBar as HTMLElement).style.display = 'flex';
+            }
+          }
+        }
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 6;
+      const imgWidth = pdfWidth - (margin * 2);
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = margin;
+
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= (pdfHeight - (margin * 2));
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+        heightLeft -= (pdfHeight - (margin * 2));
+      }
+
+      const docRef = formData.invoiceNo || bookingIdParam || 'DECLARATION';
+      const guestNameClean = (formData.guestName || guestList[0]?.name || 'Guest').trim().replace(/\s+/g, '_');
+      pdf.save(`Declaration_Form_${docRef}_${guestNameClean}.pdf`);
+    } catch (error) {
+      console.error('PDF generation error, falling back to print dialog:', error);
+      window.print();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   return (
@@ -719,17 +973,19 @@ export default function DeclarationForm() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded-lg shadow transition-all cursor-pointer"
+            type="button"
+            onClick={handleDownloadPDF}
+            disabled={isGeneratingPdf}
+            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg shadow transition-all cursor-pointer disabled:opacity-50"
           >
-            <Printer className="w-4 h-4" />
-            {t.printForm}
+            {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{isGeneratingPdf ? 'Saving PDF...' : 'Save as PDF'}</span>
           </button>
         </div>
       </div>
 
       {/* Main Printed Document Outer Border Frame */}
-      <div className="max-w-4xl mx-auto bg-white border border-slate-900 shadow-xl p-5 sm:p-8 md:p-10 print:shadow-none print:border-slate-900 print:p-6 print:max-w-none">
+      <div id="declaration-printable-area" className="max-w-4xl mx-auto bg-white border border-slate-900 shadow-xl p-5 sm:p-8 md:p-10 print:shadow-none print:border-slate-900 print:p-6 print:max-w-none">
         
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b-2 border-slate-900 pb-5 mb-5 print:pb-3 print:mb-4">
@@ -757,59 +1013,12 @@ export default function DeclarationForm() {
           </div>
         </div>
 
-        {/* Online Booking Authentication Banner (if active) or Search Bar */}
-        {!submitted && (
-          <div className="mb-6 print:hidden">
-            {formData.invoiceNo ? (
-              <div className="p-4 bg-sky-50/90 border border-sky-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-sky-950 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="font-extrabold text-sky-800 uppercase tracking-wider block text-[10px]">AUTHENTICATED ONLINE BOOKING</span>
-                    <p className="font-bold text-slate-900 text-sm">Booking Ref: #{formData.invoiceNo}</p>
-                    <p className="text-slate-600 font-semibold">{formData.guestName || 'Verified Guest'} {formData.phone ? `• ${formData.phone}` : ''}</p>
-                  </div>
-                </div>
-                <span className="bg-sky-600 text-white px-3 py-1 rounded-full font-bold text-[11px] whitespace-nowrap">
-                  ✓ Verified &amp; Linked
-                </span>
-              </div>
-            ) : (
-              <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-xl space-y-2 text-xs text-slate-700">
-                <div className="flex items-center gap-2 font-bold text-slate-900">
-                  <Ticket className="w-4 h-4 text-[#004E98]" />
-                  <span>Have an Online Booking? Authenticate &amp; Auto-fill Details</span>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter Phone Number or Booking ID (e.g. JWS-1234)"
-                    value={lookupInput}
-                    onChange={(e) => setLookupInput(e.target.value)}
-                    className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-[#004E98] focus:outline-none text-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleLookupBooking}
-                    disabled={lookupLoading}
-                    className="bg-[#004E98] hover:bg-[#003B73] text-white font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 text-xs flex items-center justify-center gap-1.5"
-                  >
-                    <Search className="w-3.5 h-3.5" />
-                    <span>{lookupLoading ? 'Verifying...' : 'Authenticate'}</span>
-                  </button>
-                </div>
-                {lookupError && <p className="text-red-600 font-semibold text-[11px]">{lookupError}</p>}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* Confirmation Banner if Submitted */}
+
+        {/* Confirmation Banner if Submitted (Hidden in Print so print output is clean document) */}
         {submitted ? (
-          <div className="my-6 p-6 sm:p-8 bg-emerald-50 border-2 border-emerald-600 rounded-2xl text-center space-y-4 shadow-xl print:border-slate-900 print:bg-white print:shadow-none">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 shadow-inner print:hidden">
+          <div className="my-6 p-6 sm:p-8 bg-emerald-50 border-2 border-emerald-600 rounded-2xl text-center space-y-4 shadow-xl print:hidden">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 shadow-inner">
               <CheckCircle2 className="w-10 h-10" />
             </div>
             
@@ -832,39 +1041,36 @@ export default function DeclarationForm() {
               </div>
             )}
 
-            {/* CTA Buttons: View Online Booking Pass */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 print:hidden">
-              {(formData.invoiceNo || bookingIdParam) && (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/ticket/${formData.invoiceNo || bookingIdParam}`)}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl text-xs sm:text-sm font-black shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95"
-                >
-                  <Ticket className="w-4.5 h-4.5" />
-                  <span>View Online Booking Route (Successfully Booked)</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              )}
-
+            {/* CTA Buttons */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 type="button"
-                onClick={handlePrint}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl text-xs font-bold hover:bg-slate-800 transition-all cursor-pointer"
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPdf}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl text-xs sm:text-sm font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
               >
-                <Printer className="w-4 h-4" />
-                {t.printCompleted}
+                {isGeneratingPdf ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Download className="w-4 h-4.5" />}
+                <span>{isGeneratingPdf ? 'Saving PDF...' : 'Save as PDF'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-sky-600 text-white px-5 py-3 rounded-xl text-xs font-bold hover:bg-sky-700 transition-all cursor-pointer"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-sky-600 text-white px-6 py-3 rounded-xl text-xs sm:text-sm font-extrabold hover:bg-sky-700 shadow-md transition-all cursor-pointer"
               >
                 {t.returnHome}
               </button>
             </div>
           </div>
         ) : null}
+
+        {/* Printable Document Metadata Bar (Visible in Print Only) */}
+        <div className="hidden print:flex items-center justify-between border-2 border-slate-900 p-2.5 mb-3 rounded-md text-xs font-mono font-bold text-black">
+          <span>BOOKING REF: #{formData.invoiceNo || 'WALK-IN'}</span>
+          <span>PRIMARY GUEST: {formData.guestName || guestList[0]?.name || 'N/A'}</span>
+          <span>PHONE: {formData.phone || 'N/A'}</span>
+          <span>DATE: {formData.agreementDate || new Date().toISOString().split('T')[0]}</span>
+        </div>
 
         {/* Error Message Box */}
         {errorMessage && (
@@ -873,7 +1079,7 @@ export default function DeclarationForm() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 print:space-y-4">
+        <form onSubmit={handleSubmit} className={`space-y-6 print:space-y-4 ${submitted ? 'screen-only-hide-when-submitted' : ''}`}>
           
           {/* Terms List (Bulleted with ➤ arrow-style bullets) */}
           <div className="space-y-2.5 sm:space-y-3 text-xs sm:text-[13px] leading-relaxed text-slate-900 font-sans print:text-[11px] print:leading-tight">
@@ -896,20 +1102,23 @@ export default function DeclarationForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-2">
               {/* Total Guest Selection (1 - 20) */}
-              <div className="md:col-span-2 p-3 bg-slate-50 border border-slate-300 rounded-lg flex flex-wrap items-center justify-between gap-3">
+              <div className="md:col-span-2 p-3 bg-slate-50 border border-slate-300 rounded-lg flex flex-wrap items-center justify-between gap-3 print:bg-transparent print:border-slate-800 print:p-2">
                 <div>
                   <label className="text-xs font-serif font-bold text-slate-900 uppercase">
-                    {t.totalGuestsLabel} <span className="text-red-600">*</span>
+                    {t.totalGuestsLabel} <span className="text-red-600 print:hidden">*</span>
                   </label>
-                  <p className="text-[11px] text-slate-600">
+                  <p className="text-[11px] text-slate-600 print:hidden">
                     Select how many guests are participating in this trip
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <span className="hidden print:inline-block font-bold text-black text-sm">
+                    {guestCount} {guestCount === 1 ? 'Guest' : 'Guests'}
+                  </span>
                   <select
                     value={guestCount}
                     onChange={(e) => handleGuestCountChange(parseInt(e.target.value) || 1)}
-                    className="bg-white border-2 border-sky-600 text-sky-950 font-bold text-sm rounded-lg px-3 py-1.5 focus:outline-none cursor-pointer shadow-xs focus:ring-2 focus:ring-sky-500"
+                    className="bg-white border-2 border-sky-600 text-sky-950 font-bold text-sm rounded-lg px-3 py-1.5 focus:outline-none cursor-pointer shadow-xs focus:ring-2 focus:ring-sky-500 print:hidden"
                   >
                     {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
                       <option key={num} value={num}>
@@ -921,25 +1130,25 @@ export default function DeclarationForm() {
               </div>
 
               {/* Dynamic Guest Name & Age Inputs */}
-              <div className="md:col-span-2 space-y-2.5 bg-sky-50/50 p-3 rounded-lg border border-sky-100">
-                <div className="flex items-center justify-between border-b border-sky-200 pb-1.5">
-                  <h4 className="font-serif font-bold text-xs text-sky-950 uppercase tracking-wider flex items-center gap-2">
+              <div className="md:col-span-2 space-y-2.5 bg-sky-50/50 p-3 rounded-lg border border-sky-100 print:bg-transparent print:border-slate-800 print:p-2">
+                <div className="flex items-center justify-between border-b border-sky-200 pb-1.5 print:border-slate-800">
+                  <h4 className="font-serif font-bold text-xs text-sky-950 uppercase tracking-wider flex items-center gap-2 print:text-black">
                     <span>{t.guestListHeader}</span>
-                    <span className="bg-sky-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans">
+                    <span className="bg-sky-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans print:bg-slate-900">
                       {guestCount} {guestCount === 1 ? 'Person' : 'People'}
                     </span>
                   </h4>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 print:gap-2">
                   {guestList.map((g, idx) => (
-                    <div key={idx} className="bg-white p-2.5 rounded-lg border border-slate-300 flex items-center gap-2 shadow-2xs">
-                      <span className="text-xs font-bold text-sky-800 bg-sky-100 px-2 py-1 rounded shrink-0 font-mono">
+                    <div key={idx} className="bg-white p-2.5 rounded-lg border border-slate-300 flex items-center gap-2 shadow-2xs print:bg-transparent print:border-slate-800 print:p-1.5 print:shadow-none">
+                      <span className="text-xs font-bold text-sky-800 bg-sky-100 px-2 py-1 rounded shrink-0 font-mono print:bg-slate-200 print:text-black">
                         #{idx + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase">
-                          {t.guestNumberLabel(idx + 1)} {t.guestNameLabel} {idx === 0 && <span className="text-red-600">*</span>}
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase print:text-slate-800">
+                          {t.guestNumberLabel(idx + 1)} {t.guestNameLabel} {idx === 0 && <span className="text-red-600 print:hidden">*</span>}
                         </label>
                         <input
                           type="text"
@@ -947,11 +1156,11 @@ export default function DeclarationForm() {
                           onChange={(e) => handleGuestItemChange(idx, 'name', e.target.value)}
                           placeholder={idx === 0 ? t.guestNamePlaceholder : `Guest ${idx + 1} Name`}
                           required={idx === 0}
-                          className="w-full border-b border-dotted border-slate-600 bg-transparent px-1 py-0.5 text-xs font-medium focus:outline-none focus:border-sky-600 text-slate-900"
+                          className="w-full border-b border-dotted border-slate-600 bg-transparent px-1 py-0.5 text-xs font-medium focus:outline-none focus:border-sky-600 text-slate-900 print:font-bold print:text-black print:border-solid print:border-black"
                         />
                       </div>
                       <div className="w-16 shrink-0">
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase text-center">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase text-center print:text-slate-800">
                           {t.ageLabel}
                         </label>
                         <input
@@ -959,7 +1168,7 @@ export default function DeclarationForm() {
                           value={g.age}
                           onChange={(e) => handleGuestItemChange(idx, 'age', e.target.value)}
                           placeholder={t.agePlaceholder}
-                          className="w-full border-b border-dotted border-slate-600 bg-transparent px-1 py-0.5 text-xs font-medium focus:outline-none focus:border-sky-600 text-center text-slate-900"
+                          className="w-full border-b border-dotted border-slate-600 bg-transparent px-1 py-0.5 text-xs font-medium focus:outline-none focus:border-sky-600 text-center text-slate-900 print:font-bold print:text-black print:border-solid print:border-black"
                         />
                       </div>
                     </div>
@@ -978,14 +1187,14 @@ export default function DeclarationForm() {
                   value={formData.communicationAddress}
                   onChange={handleChange}
                   placeholder={t.commAddressPlaceholder}
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600"
+                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600 print:font-bold print:text-black print:border-solid print:border-black"
                 />
               </div>
 
               {/* Telephone/mobile No */}
               <div className="space-y-1">
                 <label className="text-xs font-serif font-bold text-slate-900 uppercase">
-                  {t.phoneLabel} <span className="text-red-600">*</span>
+                  {t.phoneLabel} <span className="text-red-600 print:hidden">*</span>
                 </label>
                 <input
                   type="tel"
@@ -994,7 +1203,7 @@ export default function DeclarationForm() {
                   onChange={handleChange}
                   required
                   placeholder={t.phonePlaceholder}
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600"
+                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600 print:font-bold print:text-black print:border-solid print:border-black"
                 />
               </div>
 
@@ -1009,8 +1218,48 @@ export default function DeclarationForm() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder={t.emailPlaceholder}
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600"
+                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600 print:font-bold print:text-black print:border-solid print:border-black"
                 />
+              </div>
+
+              {/* Activities Selection Section (Above Signature) */}
+              <div className="md:col-span-2 border border-slate-300 rounded-lg p-3.5 sm:p-4 bg-slate-50/70 space-y-2.5 my-1 print:p-2 print:border-slate-800">
+                <h3 className="font-serif font-bold text-xs sm:text-sm text-slate-900 uppercase tracking-wider border-b border-slate-300 pb-1 flex items-center justify-between">
+                  <span>Participating Water Sports Activities</span>
+                  <span className="text-[11px] font-sans text-sky-800 bg-sky-100/80 border border-sky-200 px-2 py-0.5 rounded-full lowercase tracking-normal font-semibold print:bg-transparent print:border-black print:text-black">
+                    {selectedActivities.length} {selectedActivities.length === 1 ? 'activity' : 'activities'} selected
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-600 print:hidden font-medium">
+                  Select all water sports activities you or your group will be participating in:
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 print:flex print:flex-wrap print:gap-2">
+                  {DECLARATION_ACTIVITIES.map((act) => {
+                    const isChecked = selectedActivities.includes(act);
+                    return (
+                      <button
+                        key={act}
+                        type="button"
+                        onClick={() => handleActivityToggle(act)}
+                        className={`flex items-center gap-2 p-2 rounded-lg border-2 text-xs font-extrabold transition-all text-left cursor-pointer select-none ${
+                          isChecked
+                            ? 'border-sky-600 bg-white text-sky-950 shadow-xs print:border-black print:bg-slate-100 print:text-black'
+                            : 'border-slate-200 bg-white/50 text-slate-600 hover:border-slate-300 print:hidden'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${
+                          isChecked ? 'bg-sky-600 border-sky-600 text-white print:bg-black print:border-black' : 'border-slate-400 bg-white'
+                        }`}>
+                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <span>{act}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="hidden print:block text-xs font-bold font-serif text-slate-900 border-t border-slate-200 pt-1.5">
+                  Selected Activities: {selectedActivities.join(', ')}
+                </div>
               </div>
 
               {/* Guest Signature */}
@@ -1024,8 +1273,8 @@ export default function DeclarationForm() {
 
               {/* Date */}
               <div className="space-y-1 flex flex-col justify-end">
-                <label className="text-xs font-serif font-bold text-slate-900 uppercase">
-                  {t.dateLabel} <span className="text-red-600">*</span>
+                <label className="text-xs font-serif font-bold text-slate-900 uppercase block mb-0.5">
+                  {t.dateLabel} <span className="text-red-600 print:hidden">*</span>
                 </label>
                 <input
                   type="date"
@@ -1033,100 +1282,7 @@ export default function DeclarationForm() {
                   value={formData.agreementDate}
                   onChange={handleChange}
                   required
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Guardian Details Section (separate rounded-corner box below) */}
-          <div className="border border-slate-800 rounded-lg p-4 sm:p-5 bg-white space-y-3.5 print:p-3 print:space-y-2">
-            
-            {/* Guardian Note */}
-            <p className="text-xs font-serif italic font-semibold text-slate-800 leading-snug border-b border-slate-300 pb-2">
-              {t.guardianNote}
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-2">
-              {/* Guardian Name */}
-              <div className="md:col-span-2 space-y-1">
-                <label className="text-xs font-serif font-bold text-slate-900 uppercase">
-                  {t.guardianNameLabel}
-                </label>
-                <input
-                  type="text"
-                  name="guardianName"
-                  value={formData.guardianName}
-                  onChange={handleChange}
-                  placeholder={t.guardianNamePlaceholder}
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600"
-                />
-              </div>
-
-              {/* Communication Address */}
-              <div className="md:col-span-2 space-y-1">
-                <label className="text-xs font-serif font-bold text-slate-900 uppercase">
-                  {t.commAddressLabel}
-                </label>
-                <input
-                  type="text"
-                  name="guardianAddress"
-                  value={formData.guardianAddress}
-                  onChange={handleChange}
-                  placeholder={t.guardianAddressPlaceholder}
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600"
-                />
-              </div>
-
-              {/* Guardian Phone */}
-              <div className="space-y-1">
-                <label className="text-xs font-serif font-bold text-slate-900 uppercase">
-                  {t.phoneLabel}
-                </label>
-                <input
-                  type="tel"
-                  name="guardianPhone"
-                  value={formData.guardianPhone}
-                  onChange={handleChange}
-                  placeholder={t.guardianPhonePlaceholder}
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600"
-                />
-              </div>
-
-              {/* Guardian Email */}
-              <div className="space-y-1">
-                <label className="text-xs font-serif font-bold text-slate-900 uppercase">
-                  {t.emailLabel}
-                </label>
-                <input
-                  type="email"
-                  name="guardianEmail"
-                  value={formData.guardianEmail}
-                  onChange={handleChange}
-                  placeholder={t.emailPlaceholder}
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600"
-                />
-              </div>
-
-              {/* Guardian Signature */}
-              <div className="space-y-1">
-                <SignaturePad
-                  label={t.guardianSigLabel}
-                  onSignatureChange={(sig) => setFormData(prev => ({ ...prev, guardianSignature: sig }))}
-                />
-              </div>
-
-              {/* Guardian Date */}
-              <div className="space-y-1 flex flex-col justify-end">
-                <label className="text-xs font-serif font-bold text-slate-900 uppercase">
-                  {t.dateLabel}
-                </label>
-                <input
-                  type="date"
-                  name="guardianAgreementDate"
-                  value={formData.guardianAgreementDate}
-                  onChange={handleChange}
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600"
+                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600 print:font-bold print:text-black print:border-solid print:border-black"
                 />
               </div>
             </div>
