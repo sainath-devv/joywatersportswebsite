@@ -199,7 +199,7 @@ export default function ThingsToDoVarkala() {
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-2">
               <h3 className="font-bold text-white text-sm">Can I book water sports in advance for a group?</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Absolutely! We offer custom combo packages (PACK 2500 and OVERALL 4500) for groups and families with priority slot scheduling.
+                Absolutely! We offer advance online booking and priority slot scheduling for groups and families.
               </p>
             </div>
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-2">
