@@ -130,8 +130,8 @@ export const joyWaterSportsBusinessSchema = {
     worstRating: '1'
   },
   sameAs: [
-    'https://www.google.com/maps?cid=1234567890',
-    'https://www.instagram.com/joywatersports_varkala'
+    'https://maps.app.goo.gl/Y7Dp4nPgiQKuAXJC8',
+    'https://www.instagram.com/joywatersportsvarkala'
   ]
 };
 
