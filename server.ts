@@ -4143,7 +4143,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'jwt_secret_jws_default_12345';
         date: new Date().toISOString().split('T')[0],
         time: '10:00 AM',
         guests: 2,
-        activities: [{ name: 'Scuba Diving', price: 1500, count: 2 }],
+        activities: [{ name: 'Parasailing', price: 1500, count: 2 }],
         specialRequest: 'Neon database test store',
         totalAmount: 3000,
         advancePaid: 1000,
