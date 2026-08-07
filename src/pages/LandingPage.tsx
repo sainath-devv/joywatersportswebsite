@@ -91,7 +91,7 @@ export default function LandingPage() {
   const [enquiryName, setEnquiryName] = useState('');
   const [enquiryEmail, setEnquiryEmail] = useState('');
   const [enquiryPhone, setEnquiryPhone] = useState('');
-  const [enquiryActivities, setEnquiryActivities] = useState<string[]>(['Overall Watersports Package']);
+  const [enquiryActivities, setEnquiryActivities] = useState<string[]>(['Parasailing']);
   const [enquiryMessage, setEnquiryMessage] = useState('');
   const [isEnquirySubmitting, setIsEnquirySubmitting] = useState(false);
   const [showContactPopup, setShowContactPopup] = useState(false);
@@ -99,7 +99,6 @@ export default function LandingPage() {
 
   // Activity list with pricing
   const ACTIVITY_OPTIONS = [
-    { id: 'OVERALL', name: 'Overall Watersports Package', price: 4500, tag: 'Best Value' },
     { id: 'PARASAILING', name: 'Parasailing', price: 2500, tag: 'High Thrill' },
     { id: 'JET SKI', name: 'Jet Ski', price: 700, tag: 'Speed' },
     { id: 'BANANA BOAT', name: 'Banana Boat', price: 500, tag: 'Group Fun' },
@@ -112,16 +111,11 @@ export default function LandingPage() {
 
   const toggleActivity = (actName: string) => {
     setEnquiryActivities(prev => {
-      if (actName === 'Overall Watersports Package') {
-        return ['Overall Watersports Package'];
-      }
-      // If choosing individual activities, remove 'Overall Watersports Package'
-      const withoutOverall = prev.filter(a => a !== 'Overall Watersports Package');
-      if (withoutOverall.includes(actName)) {
-        const remaining = withoutOverall.filter(a => a !== actName);
-        return remaining.length === 0 ? ['Overall Watersports Package'] : remaining;
+      if (prev.includes(actName)) {
+        const remaining = prev.filter(a => a !== actName);
+        return remaining.length === 0 ? ['Parasailing'] : remaining;
       } else {
-        return [...withoutOverall, actName];
+        return [...prev, actName];
       }
     });
   };
@@ -151,7 +145,7 @@ export default function LandingPage() {
       lastName: '',
       email: enquiryEmail.trim() || 'notprovided@joywatersports.com',
       phone: enquiryPhone.trim(),
-      activities: enquiryActivities.length > 0 ? enquiryActivities : ['Overall Watersports Package'],
+      activities: enquiryActivities.length > 0 ? enquiryActivities : ['Parasailing'],
       specialRequest: enquiryMessage.trim(),
       totalAmount: totalCalculatedAmt,
       date: chosenDate,
@@ -314,35 +308,19 @@ export default function LandingPage() {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const isPackageOption = (act: string) => {
-    if (!act) return false;
-    return act === 'PACKAGE 2500' || act === 'OVERALL';
-  };
-
   const handleActivityToggle = (activity: string) => {
     setFormData(prev => {
       const active = prev.activities.includes(activity);
-      const isPkg = isPackageOption(activity);
-      
       if (active) {
         return {
           ...prev,
           activities: prev.activities.filter(a => a !== activity)
         };
       } else {
-        if (isPkg) {
-          // Selecting a package replaces any current selection with just this package
-          return {
-            ...prev,
-            activities: [activity]
-          };
-        } else {
-          // Selecting an individual activity removes any package and adds this activity
-          return {
-            ...prev,
-            activities: [...prev.activities.filter(a => !isPackageOption(a)), activity]
-          };
-        }
+        return {
+          ...prev,
+          activities: [...prev.activities, activity]
+        };
       }
     });
   };
@@ -377,7 +355,7 @@ export default function LandingPage() {
     }
 
     if (formData.activities.length === 0) {
-      errors.activities = "Please select at least one activity or package.";
+      errors.activities = "Please select at least one activity.";
     }
 
     return errors;
@@ -438,28 +416,11 @@ export default function LandingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check Step 1 errors first
+    // Check errors
     const step1Errors = validateStep1();
     if (Object.keys(step1Errors).length > 0) {
       setFieldErrors(step1Errors);
-      setBookingStep(1);
       const firstErrorKey = Object.keys(step1Errors)[0];
-      const element = document.getElementById(`field-${firstErrorKey}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        const input = element.querySelector('input, select, textarea') as HTMLElement;
-        if (input) input.focus();
-      }
-      return;
-    }
-
-    // Check full errors
-    const errors = validateAndGetErrors();
-    setFieldErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
-      setBookingStep(2);
-      const firstErrorKey = Object.keys(errors)[0];
       const element = document.getElementById(`field-${firstErrorKey}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -480,28 +441,16 @@ export default function LandingPage() {
       }
     } catch (error) {}
 
-    const effectiveGuestName = declarationData.guestName.trim() || `${formData.firstName} ${formData.lastName}`.trim();
-
     const payload = {
       ...formData,
       phone: parsedPhone,
       totalAmount,
-      guestName: effectiveGuestName,
-      communicationAddress: declarationData.communicationAddress.trim() || 'Online Guest, Varkala',
-      signature: declarationData.signature,
-      agreementDate: declarationData.agreementDate || formData.date || new Date().toISOString().split('T')[0],
-      declarationAgreed: declarationData.declarationAgreed,
-      hasGuardian: declarationData.hasGuardian,
-      guardianName: declarationData.guardianName,
-      guardianAddress: declarationData.guardianAddress,
-      guardianPhone: declarationData.guardianPhone,
-      guardianEmail: declarationData.guardianEmail,
-      guardianSignature: declarationData.guardianSignature,
-      guardianAgreementDate: declarationData.guardianAgreementDate
+      guestName: `${formData.firstName} ${formData.lastName}`.trim(),
+      ticketStatus: 'PENDING_DECLARATION'
     };
 
     try {
-      // 1. Submit the main booking
+      // Submit the main booking
       const bResponse = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -515,8 +464,6 @@ export default function LandingPage() {
 
       const bResult = await bResponse.json();
       const bookingId = bResult.booking.id;
-
-
 
       const message = `🌊 *NEW BOOKING ENQUIRY* 🌊\n\n` +
                       `🆔 *Booking ID:* ${bookingId}\n` +
@@ -550,6 +497,7 @@ export default function LandingPage() {
       setSubmittedEnquiry(confirmedData);
       setShowContactPopup(true);
       setStatus("success");
+      
       // Reset form
       setFormData({
         firstName: "",
@@ -561,21 +509,6 @@ export default function LandingPage() {
         guests: "1",
         activities: [],
         specialRequest: ""
-      });
-
-      setDeclarationData({
-        guestName: "",
-        communicationAddress: "",
-        agreementDate: new Date().toISOString().split('T')[0],
-        signature: "",
-        declarationAgreed: false,
-        hasGuardian: false,
-        guardianName: "",
-        guardianAddress: "",
-        guardianPhone: "",
-        guardianEmail: "",
-        guardianSignature: "",
-        guardianAgreementDate: new Date().toISOString().split('T')[0]
       });
       setFieldErrors({});
 
@@ -597,11 +530,6 @@ export default function LandingPage() {
     }
   };
 
-  const packages = [
-    { name: "Package 2500", price: "₹2500", period: "/person", description: "Special offer this month! Includes 3 amazing activities.", features: ["Parasailing", "Jet Ski", "1 Complementary Activity"], isPopular: true },
-    { name: "Overall Package", price: "₹4500", period: "/person", description: "The ultimate experience including all water sports activities.", features: ["Parasailing", "Jet Ski", "Flying Fish", "Speed Boat", "Banana Boat", "Crazy Sofa", "Doughnut Boat", "ATV"], isPopular: false }
-  ];
-
   const testimonials = [
     { quote: "We had been here to experience the speed boat ride. The cost was rupees five hundred each. Life jacket was provided. The experience was amazing and definitely worth it. You can spot dolphins if you are lucky. There is an option to dive in middle of the sea for two hundred rupees per person. The water was blue. Overall would recommend this to others.", name: "Verified Explorer" },
     { quote: "Wonderful experience with Joy water sports. Our family tried their Parasailing, doughnut ride, crazy sofa and it was really worth it and completely safe. They ensured we had the maximum fun and also suggested the right rides. Would highly recommend them !!", name: "HARRISH SREEDHAR" },
@@ -614,10 +542,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col font-sans text-deep-blue overflow-x-hidden relative bg-foam-white">
       <SEOHead
-        title="Joy Water Sports Varkala | #1 Water Sports & Papanasam Beach Booking"
-        description="Experience the top water sports in Varkala, Kerala! Book Parasailing, Jet Ski, Flying Fish, Speedboat & Banana rides at Papanasam Beach. Certified safety & instant digital ticket."
+        title="Joy Water Sports Varkala | Best Water Sports in Varkala"
+        description="Book top-rated water sports in Varkala with Joy Water Sports Varkala! Best price for parasailing varkala, jet ski & speed boat. Unbeatable coastal adventure. Book now!"
         canonicalUrl="https://joywatersports.com"
-        keywords="water sports Varkala, water sports Papanasam beach, Varkala water sports booking, Parasailing Varkala, Jet ski Varkala, Flying fish Varkala, things to do in Varkala, Kerala holidays water sports"
+        keywords="Joy Water Sports Varkala, water sports in varkala, parasailing varkala, jet ski in varkala, varkala tourist places, adventure activities in varkala, varkala things to do, varkala places to visit, unique places to visit in varkala"
         schema={[
           joyWaterSportsBusinessSchema,
           {
@@ -667,7 +595,6 @@ export default function LandingPage() {
           {/* Desktop Navigation Links & Book Now Button (Centered with proper gap) */}
           <div className="hidden md:flex items-center justify-center gap-6 lg:gap-8 mx-auto">
             <button onClick={() => document.getElementById('activities-section')?.scrollIntoView({ behavior: 'smooth' })} className="text-[14px] font-bold text-deep-blue hover:text-sky-blue transition-colors cursor-pointer whitespace-nowrap">Activities</button>
-            <button onClick={() => document.getElementById('pricing-section')?.scrollIntoView({ behavior: 'smooth' })} className="text-[14px] font-bold text-deep-blue hover:text-sky-blue transition-colors cursor-pointer whitespace-nowrap">Pricing &amp; Offers</button>
             <button onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })} className="text-[14px] font-bold text-deep-blue hover:text-sky-blue transition-colors cursor-pointer whitespace-nowrap">Reviews</button>
             <Link to="/declaration" className="text-[14px] font-bold text-deep-blue hover:text-sky-blue transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1">
               <FileText size={15} className="text-sky-600" />
@@ -714,15 +641,6 @@ export default function LandingPage() {
                   className="w-full text-left py-2.5 px-3 text-sm font-bold text-deep-blue hover:text-sky-blue hover:bg-gray-50 rounded-xl transition-all"
                 >
                   Catalog Activities
-                </button>
-                <button 
-                  onClick={() => {
-                    document.getElementById('pricing-section')?.scrollIntoView({ behavior: 'smooth' });
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left py-2.5 px-3 text-sm font-bold text-deep-blue hover:text-sky-blue hover:bg-gray-50 rounded-xl transition-all"
-                >
-                  Pricing &amp; Special Offers
                 </button>
                 <button 
                   onClick={() => {
@@ -776,9 +694,9 @@ export default function LandingPage() {
           <p className="text-deep-blue/70 max-w-[650px] text-sm md:text-base leading-relaxed font-semibold">Feel the harmony, enjoy the comfort, admire the beautiful views and interiors. Our resort is one of the most suitable places for relaxation and unforgettable memories.</p>
         </div>
         <div className="w-full max-w-7xl mx-auto flex h-[300px] sm:h-[340px] md:h-[420px] lg:h-[520px] gap-1 px-2 sm:px-6 justify-center">
-          <div className="w-[25%] sm:w-[20%] md:w-[22%] h-full overflow-hidden border border-gray-100 shadow-sm rounded-l-2xl"><img loading="lazy" decoding="async" src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws1.png" alt="Resort" className="w-full h-full object-cover" /></div>
-          <div className="w-[50%] sm:w-[56%] md:w-[54%] h-full overflow-hidden border border-gray-100 shadow-sm"><img loading="lazy" decoding="async" src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/parasailingmain.png" alt="Adventure" className="w-full h-full object-cover" /></div>
-          <div className="w-[25%] sm:w-[20%] md:w-[22%] h-full overflow-hidden border border-gray-100 shadow-sm rounded-r-2xl"><img loading="lazy" decoding="async" src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws3.png" alt="Pool" className="w-full h-full object-cover" /></div>
+          <div className="w-[25%] sm:w-[20%] md:w-[22%] h-full overflow-hidden border border-gray-100 shadow-sm rounded-l-2xl"><img loading="lazy" decoding="async" src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws1.png" alt="Joy Water Sports Varkala Jet Ski and Beach Activities" className="w-full h-full object-cover" /></div>
+          <div className="w-[50%] sm:w-[56%] md:w-[54%] h-full overflow-hidden border border-gray-100 shadow-sm"><img loading="lazy" decoding="async" src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/parasailingmain.png" alt="Parasailing Varkala at Papanasam Beach with Joy Water Sports" className="w-full h-full object-cover" /></div>
+          <div className="w-[25%] sm:w-[20%] md:w-[22%] h-full overflow-hidden border border-gray-100 shadow-sm rounded-r-2xl"><img loading="lazy" decoding="async" src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws3.png" alt="Speed boat and adventure activities in Varkala" className="w-full h-full object-cover" /></div>
         </div>
       </section>
 
@@ -796,7 +714,7 @@ export default function LandingPage() {
         <div ref={scrollContainerRef} className="flex overflow-x-auto overflow-y-hidden gap-4 sm:gap-6 w-full max-w-[1550px] pb-4 scrollbar-hide snap-x" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {EXPERIENCES.map((exp, index) => (
             <Link to={`/activity/${exp.id}`} key={index} className="relative w-[320px] sm:w-[350px] lg:w-[380px] shrink-0 aspect-[4/5] overflow-hidden group cursor-pointer shadow-sm snap-start block rounded-2xl" style={{ contentVisibility: 'auto', containIntrinsicSize: '320px 400px' }}>
-              <img src={exp.image} alt={exp.title} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <img src={exp.image} alt={`${exp.title} - Water sports in Varkala with Joy Water Sports`} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
               <div className="absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-none animate-fade-in" />
               <div className="absolute bottom-0 left-0 w-full p-5 flex justify-between items-end gap-2">
                 <div className="flex flex-col items-start">
@@ -887,59 +805,6 @@ export default function LandingPage() {
                   </div>
                </div>
            </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing-section" className="relative w-full flex flex-col items-center px-4 sm:px-12 py-16 lg:py-24 bg-surf-2">
-        <div className="absolute inset-0 z-0 opacity-10" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&q=80&w=2000')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-surf-2 via-surf-2/85 to-surf-2 z-0"></div>
-        <div className="relative z-10 flex flex-col items-center w-full">
-          <span className="text-sky-blue text-xs font-bold uppercase tracking-widest mb-4 underline underline-offset-4 decoration-deep-blue decoration-2">Exclusive Packages</span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-display text-deep-blue leading-tight text-center mb-5 font-semibold">Unbeatable <span className="text-sky-blue">Adventures</span></h2>
-          <p className="text-deep-blue/60 text-center max-w-[500px] text-sm md:text-base leading-relaxed mb-12 sm:mb-16 px-2 font-medium">Choose an adventure package that suits you best. Get more activities for a better price.</p>
-          
-          <div className="flex flex-col lg:flex-row items-stretch justify-center gap-6 sm:gap-8 w-full max-w-[850px] px-4 lg:px-0">
-            {packages.map((pkg, index) => (
-              <div key={index} className={`w-full lg:w-1/2 flex flex-col p-8 sm:p-10 rounded-[32px] transition-all duration-300 hover:-translate-y-2 ${pkg.isPopular ? 'bg-deep-blue text-white shadow-2xl relative lg:-mt-4 lg:-mb-4 z-10 border border-white/10' : 'bg-white text-deep-blue shadow-xl border border-gray-100 hover:shadow-2xl z-0'}`}>
-                {pkg.isPopular && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-sky-blue text-white text-[11px] font-bold tracking-wider uppercase px-4 py-1.5 rounded-full shadow-lg">
-                    Best Value
-                  </div>
-                )}
-                <h3 className={`font-serif mb-2 ${pkg.isPopular ? 'text-[28px] sm:text-[32px]' : 'text-[24px] sm:text-[28px]'}`}>{pkg.name}</h3>
-                <p className={`leading-relaxed mb-6 font-medium ${pkg.isPopular ? 'text-white/80' : 'text-deep-blue/70'}`}>{pkg.description}</p>
-                
-                <div className="flex items-baseline gap-1 mb-6 pb-6 border-b border-opacity-20 border-current">
-                  <span className={`font-medium tracking-tight leading-none ${pkg.isPopular ? 'text-[52px] sm:text-[64px] text-sky-blue' : 'text-[44px] sm:text-[52px] text-deep-blue'}`}>{pkg.price}</span>
-                  <span className={`text-[14px] sm:text-[15px] ${pkg.isPopular ? 'text-white/70' : 'text-deep-blue/60'}`}>{pkg.period}</span>
-                </div>
-                
-                <div className="mb-8 flex-1">
-                  <p className={`font-bold tracking-wider uppercase mb-5 ${pkg.isPopular ? 'text-[14px] text-white/90' : 'text-[13px] text-deep-blue/90'}`}>What's Included:</p>
-                  <ul className={`flex flex-col ${pkg.isPopular ? 'gap-4' : 'gap-3.5'}`}>
-                    {pkg.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <Check size={pkg.isPopular ? 20 : 18} strokeWidth={3} className={`shrink-0 ${pkg.isPopular ? 'mt-1 text-sky-blue' : 'mt-0.5 text-sky-blue'}`} />
-                        <span className={`leading-snug font-medium ${pkg.isPopular ? 'text-[16px] sm:text-[18px] text-white' : 'text-[15px] text-deep-blue/80'}`}>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    const activityName = pkg.name === "Overall Package" ? "OVERALL" : "PACKAGE 2500";
-                    setFormData(prev => ({ ...prev, activities: [activityName] }));
-                    const el = document.getElementById("booking-section");
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className={`w-full py-4 rounded-2xl text-sm font-bold tracking-wide transition-all duration-300 shadow-md hover:shadow-xl ${pkg.isPopular ? 'bg-gradient-to-r from-sky-blue to-ocean-blue hover:from-sky-blue hover:to-deep-blue text-white' : 'bg-gradient-to-r from-deep-blue to-ocean-blue hover:from-ocean-blue hover:to-sky-blue text-white'}`}>
-                  Book This Package
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -1071,485 +936,238 @@ export default function LandingPage() {
 
           {/* Booking Card */}
           <div className="bg-white rounded-none shadow-lg border border-slate-200/80 overflow-hidden p-5 sm:p-6 transition-all">
-            {/* Step Navigation Bar */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-5 gap-2">
-              <button
-                type="button"
-                onClick={() => setBookingStep(1)}
-                className={`flex-1 py-2.5 px-2 sm:px-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
-                  bookingStep === 1
-                    ? 'border-[#004E98] text-[#004E98] bg-sky-50/60'
-                    : 'border-transparent text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
-                  bookingStep === 1 ? 'bg-[#004E98] text-white' : 'bg-slate-200 text-slate-600'
-                }`}>1</span>
-                <span>Booking Details</span>
-              </button>
-
-              <div className="w-6 sm:w-10 h-[2px] bg-slate-200 shrink-0"></div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (isStep1Valid) {
-                    setBookingStep(2);
-                  } else {
-                    handleNextStep();
-                  }
-                }}
-                className={`flex-1 py-2.5 px-2 sm:px-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
-                  bookingStep === 2
-                    ? 'border-[#004E98] text-[#004E98] bg-sky-50/60'
-                    : 'border-transparent text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
-                  bookingStep === 2 ? 'bg-[#004E98] text-white' : 'bg-slate-200 text-slate-600'
-                }`}>2</span>
-                <span>Declaration & Waiver</span>
-              </button>
+            {/* Header */}
+            <div className="border-b border-slate-200 pb-3 mb-4">
+              <h3 className="text-base sm:text-lg font-bold text-[#0B1E3C] flex items-center gap-2">
+                <Ticket className="text-[#004E98]" size={20} />
+                Online Booking Reservation
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">Fill in details below to reserve your slots. Declaration form can be completed after booking.</p>
             </div>
 
             {/* RESERVATION FORM */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* STEP 1: BOOKING DETAILS */}
-              {bookingStep === 1 && (
-                <div className="space-y-3.5 animate-fade-in">
-                  <div className="flex items-center justify-between pb-1 border-b border-slate-100 mb-2">
-                    <h3 className="text-base font-bold text-[#0B1E3C] flex items-center gap-2">
-                      <Ticket className="text-[#004E98]" size={18} />
-                      Step 1: Reservation Details
-                    </h3>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      STEP 1 OF 2
-                    </span>
-                  </div>
-
-                  {/* Row 1: First Name & Last Name */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div id="field-firstName" className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-600 block">First Name <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        required
-                        value={formData.firstName}
-                        onChange={handleChange}
-                        placeholder="Enter first name"
-                        className={`w-full bg-slate-50/70 border ${fieldErrors.firstName ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all`}
-                      />
-                      {fieldErrors.firstName && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.firstName}</p>}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-600 block">Last Name</label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleChange}
-                        placeholder="Enter last name"
-                        className="w-full bg-slate-50/70 border border-slate-200/90 rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Email Address & Phone Number */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div id="field-email" className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-600 block">Email Address <span className="text-red-500">*</span></label>
-                      <input
-                        type="email"
-                        name="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Enter email address"
-                        className={`w-full bg-slate-50/70 border ${fieldErrors.email ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all`}
-                      />
-                      {fieldErrors.email && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.email}</p>}
-                    </div>
-                    <div id="field-phone" className="space-y-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <label className="text-xs font-semibold text-slate-600">Phone Number (WhatsApp) <span className="text-red-500">*</span></label>
-                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">REQUIRED</span>
-                      </div>
-                      <input
-                        type="tel"
-                        name="phone"
-                        required
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="Enter phone number"
-                        className={`w-full bg-slate-50/70 border ${fieldErrors.phone ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all`}
-                      />
-                      {fieldErrors.phone && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.phone}</p>}
-                    </div>
-                  </div>
-
-                  {/* Row 3: Date, Time Slot, Guests */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div id="field-date" className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-600 block">Date <span className="text-red-500">*</span></label>
-                      <input
-                        type="date"
-                        name="date"
-                        required
-                        value={formData.date}
-                        onChange={handleChange}
-                        className={`w-full bg-slate-50/70 border ${fieldErrors.date ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all cursor-pointer`}
-                      />
-                      {fieldErrors.date && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.date}</p>}
-                    </div>
-                    <div id="field-time" className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-600 block">Time Slot <span className="text-red-500">*</span></label>
-                      <select
-                        name="time"
-                        required
-                        value={formData.time}
-                        onChange={handleChange}
-                        className={`w-full bg-slate-50/70 border ${fieldErrors.time ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all cursor-pointer`}
-                      >
-                        <option value="">Select Time</option>
-                        <option value="09:00">09:00 AM</option>
-                        <option value="10:00">10:00 AM</option>
-                        <option value="11:00">11:00 AM</option>
-                        <option value="12:00">12:00 PM</option>
-                        <option value="13:00">01:00 PM</option>
-                        <option value="14:00">02:00 PM</option>
-                        <option value="15:00">03:00 PM</option>
-                        <option value="16:00">04:00 PM</option>
-                        <option value="17:00">05:00 PM</option>
-                      </select>
-                      {fieldErrors.time && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.time}</p>}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-600 block">Guests</label>
-                      <select
-                        name="guests"
-                        value={formData.guests}
-                        onChange={handleChange}
-                        className="w-full bg-slate-50/70 border border-slate-200/90 rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all cursor-pointer"
-                      >
-                        {[1,2,3,4,5,6,7,8,9,10,12,15,20].map(n => (
-                          <option key={n} value={n}>{n} Guest{n > 1 ? 's' : ''}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Row 4: Select Activities or Packages */}
-                  <div id="field-activities" className="space-y-1 relative">
-                    <label className="text-xs font-semibold text-slate-600 block">Select Activities or Packages <span className="text-red-500">*</span></label>
-                    <button
-                      type="button"
-                      onClick={() => setIsActivityOpen(!isActivityOpen)}
-                      className={`w-full bg-slate-50/70 border ${fieldErrors.activities ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 flex items-center justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#004E98]`}
-                    >
-                      <span className={formData.activities.length === 0 ? "text-slate-400 font-normal" : "text-slate-900 font-semibold truncate max-w-[90%]"}>
-                        {formData.activities.length === 0 ? "Click to choose items..." : formData.activities.map(a => a === 'OVERALL' ? 'Overall Watersports Package' : a).join(", ")}
-                      </span>
-                      <ChevronDown size={16} className={`text-slate-400 transition-transform ${isActivityOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                    {fieldErrors.activities && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.activities}</p>}
-
-                    {/* Opened Dropdown Panel */}
-                    {isActivityOpen && (
-                      <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white border border-slate-200 rounded-none shadow-2xl p-2.5 pb-8 max-h-[300px] overflow-y-auto">
-                        {(() => {
-                          const allKeys = Object.keys(ACTIVITY_PRICES);
-                          const packages = allKeys.filter(k => k === 'OVERALL' || k === 'PACKAGE 2500');
-                          const individual = allKeys.filter(k => k !== 'OVERALL' && k !== 'PACKAGE 2500');
-                          const sortedList = [...packages, ...individual];
-
-                          return (
-                            <>
-                              {sortedList.map((activity, idx) => {
-                                const price = ACTIVITY_PRICES[activity];
-                                const isChecked = formData.activities.includes(activity);
-                                const isPackage = activity === 'OVERALL' || activity === 'PACKAGE 2500';
-                                const labelText = activity === 'OVERALL' ? 'OVERALL WATERSPORTS PACKAGE' : activity;
-                                const isLastPackage = isPackage && (idx === packages.length - 1);
-                                const isLastItem = idx === sortedList.length - 1;
-
-                                return (
-                                  <React.Fragment key={activity}>
-                                    <label
-                                      className={`flex items-center justify-between py-1.5 px-2 rounded-none hover:bg-slate-50 cursor-pointer transition-colors ${
-                                        isPackage ? 'bg-sky-50/60 font-semibold' : ''
-                                      }`}
-                                    >
-                                      <div className="flex items-center gap-2.5">
-                                        <input
-                                          type="checkbox"
-                                          checked={isChecked}
-                                          onChange={() => handleActivityToggle(activity)}
-                                          className="w-4 h-4 rounded-none border-slate-300 text-[#004E98] focus:ring-[#004E98]"
-                                        />
-                                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
-                                          {labelText}
-                                          {activity === 'PACKAGE 2500' && (
-                                            <span className="text-[10px] bg-[#004E98] text-white px-1.5 py-0.5 rounded-none font-sans font-semibold">
-                                              BEST VALUE
-                                            </span>
-                                          )}
-                                        </span>
-                                      </div>
-                                      <span className="text-sm sm:text-base font-black text-[#004E98] font-mono">
-                                        ₹{price}
-                                      </span>
-                                    </label>
-
-                                    {/* Divider line below activity item */}
-                                    {!isLastItem && (
-                                      <div className={`border-b ${isLastPackage ? 'border-slate-300 border-b-2 my-1.5' : 'border-slate-200 my-1'}`}></div>
-                                    )}
-                                  </React.Fragment>
-                                );
-                              })}
-                              {/* Bottom spacer for clean scroll clearance */}
-                              <div className="h-6"></div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Row 5: Total Calculated Amount */}
-                  <div className="space-y-1 pt-0.5">
-                    <label className="text-xs font-semibold text-slate-600 block">Total Calculated Amount</label>
-                    <div className="bg-[#F0F5FA] border border-sky-100 rounded-none px-4 py-2.5 flex items-center justify-between">
-                      <span className="text-xs sm:text-sm font-semibold text-slate-600">
-                        Total Bill for {formData.guests || 1} guest(s)
-                      </span>
-                      <span className="text-lg sm:text-xl font-black text-[#004E98] font-mono">
-                        ₹{totalAmount.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Row 6: Message (Optional) */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-600 block">Message</label>
+              <div className="space-y-3.5 animate-fade-in">
+                {/* Row 1: First Name & Last Name */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div id="field-firstName" className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600 block">First Name <span className="text-red-500">*</span></label>
                     <input
                       type="text"
-                      name="specialRequest"
-                      value={formData.specialRequest}
+                      name="firstName"
+                      required
+                      value={formData.firstName}
                       onChange={handleChange}
-                      placeholder="Type your message here..."
+                      placeholder="Enter first name"
+                      className={`w-full bg-slate-50/70 border ${fieldErrors.firstName ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all`}
+                    />
+                    {fieldErrors.firstName && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.firstName}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600 block">Last Name</label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      placeholder="Enter last name"
                       className="w-full bg-slate-50/70 border border-slate-200/90 rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all"
                     />
                   </div>
+                </div>
 
-                  {/* STEP 1 NEXT CTA BUTTON */}
-                  <div className="pt-3">
-                    <button
-                      type="button"
-                      onClick={handleNextStep}
-                      className="w-full py-3.5 bg-[#0B1E3C] hover:bg-[#002855] text-white font-bold text-sm rounded-none shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span>Next: Declaration & Liability Release</span>
-                      <ArrowRight size={17} />
-                    </button>
+                {/* Row 2: Email Address & Phone Number */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div id="field-email" className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600 block">Email Address <span className="text-red-500">*</span></label>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter email address"
+                      className={`w-full bg-slate-50/70 border ${fieldErrors.email ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all`}
+                    />
+                    {fieldErrors.email && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.email}</p>}
+                  </div>
+                  <div id="field-phone" className="space-y-1">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <label className="text-xs font-semibold text-slate-600">Phone Number (WhatsApp) <span className="text-red-500">*</span></label>
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">REQUIRED</span>
+                    </div>
+                    <input
+                      type="tel"
+                      name="phone"
+                      required
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="Enter phone number"
+                      className={`w-full bg-slate-50/70 border ${fieldErrors.phone ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all`}
+                    />
+                    {fieldErrors.phone && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.phone}</p>}
                   </div>
                 </div>
-              )}
 
-              {/* STEP 2: DECLARATION & LIABILITY RELEASE */}
-              {bookingStep === 2 && (
-                <div className="space-y-3.5 animate-fade-in">
-                  <div className="flex items-center justify-between pb-1 border-b border-slate-100 mb-2">
-                    <h3 className="text-base font-bold text-[#0B1E3C] flex items-center gap-2">
-                      <ShieldCheck className="text-[#004E98]" size={20} />
-                      Step 2: Participant Declaration & Waiver
-                    </h3>
-                    <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 uppercase tracking-wider">
-                      STEP 2 OF 2
+                {/* Row 3: Date, Time Slot, Guests */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div id="field-date" className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600 block">Date <span className="text-red-500">*</span></label>
+                    <input
+                      type="date"
+                      name="date"
+                      required
+                      value={formData.date}
+                      onChange={handleChange}
+                      className={`w-full bg-slate-50/70 border ${fieldErrors.date ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all cursor-pointer`}
+                    />
+                    {fieldErrors.date && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.date}</p>}
+                  </div>
+                  <div id="field-time" className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600 block">Time Slot <span className="text-red-500">*</span></label>
+                    <select
+                      name="time"
+                      required
+                      value={formData.time}
+                      onChange={handleChange}
+                      className={`w-full bg-slate-50/70 border ${fieldErrors.time ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all cursor-pointer`}
+                    >
+                      <option value="">Select Time</option>
+                      <option value="09:00">09:00 AM</option>
+                      <option value="10:00">10:00 AM</option>
+                      <option value="11:00">11:00 AM</option>
+                      <option value="12:00">12:00 PM</option>
+                      <option value="13:00">01:00 PM</option>
+                      <option value="14:00">02:00 PM</option>
+                      <option value="15:00">03:00 PM</option>
+                      <option value="16:00">04:00 PM</option>
+                      <option value="17:00">05:00 PM</option>
+                    </select>
+                    {fieldErrors.time && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.time}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600 block">Guests</label>
+                    <select
+                      name="guests"
+                      value={formData.guests}
+                      onChange={handleChange}
+                      className="w-full bg-slate-50/70 border border-slate-200/90 rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all cursor-pointer"
+                    >
+                      {[1,2,3,4,5,6,7,8,9,10,12,15,20].map(n => (
+                        <option key={n} value={n}>{n} Guest{n > 1 ? 's' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 4: Select Activities */}
+                <div id="field-activities" className="space-y-1 relative">
+                  <label className="text-xs font-semibold text-slate-600 block">Select Activities <span className="text-red-500">*</span></label>
+                  <button
+                    type="button"
+                    onClick={() => setIsActivityOpen(!isActivityOpen)}
+                    className={`w-full bg-slate-50/70 border ${fieldErrors.activities ? 'border-red-500' : 'border-slate-200/90'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 flex items-center justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#004E98]`}
+                  >
+                    <span className={formData.activities.length === 0 ? "text-slate-400 font-normal" : "text-slate-900 font-semibold truncate max-w-[90%]"}>
+                      {formData.activities.length === 0 ? "Click to choose items..." : formData.activities.join(", ")}
                     </span>
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Please fill in participant contact details and provide your digital signature below to complete your booking.
-                  </p>
+                    <ChevronDown size={16} className={`text-slate-400 transition-transform ${isActivityOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {fieldErrors.activities && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.activities}</p>}
 
-                  {/* Declaration Input Fields */}
-                  <div className="space-y-3.5 bg-slate-50/80 p-4 border border-slate-200 rounded-none">
-                    {/* Guest Name in Declaration */}
-                    <div id="field-guestName" className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-700 block">
-                        Participant Full Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={declarationData.guestName}
-                        onChange={(e) => setDeclarationData(prev => ({ ...prev, guestName: e.target.value }))}
-                        placeholder={`${formData.firstName} ${formData.lastName}`.trim() || "Enter participant full name"}
-                        className={`w-full bg-white border ${fieldErrors.guestName ? 'border-red-500' : 'border-slate-300'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] transition-all`}
-                      />
-                      {fieldErrors.guestName && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.guestName}</p>}
+                  {/* Opened Dropdown Panel */}
+                  {isActivityOpen && (
+                    <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white border border-slate-200 rounded-none shadow-2xl p-2.5 pb-8 max-h-[300px] overflow-y-auto">
+                      {(() => {
+                        const allKeys = Object.keys(ACTIVITY_PRICES).filter(k => k !== 'OVERALL' && k !== 'PACKAGE 2500');
+
+                        return (
+                          <>
+                            {allKeys.map((activity, idx) => {
+                              const price = ACTIVITY_PRICES[activity];
+                              const isChecked = formData.activities.includes(activity);
+                              const isLastItem = idx === allKeys.length - 1;
+
+                              return (
+                                <React.Fragment key={activity}>
+                                  <label className="flex items-center justify-between py-1.5 px-2 rounded-none hover:bg-slate-50 cursor-pointer transition-colors">
+                                    <div className="flex items-center gap-2.5">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => handleActivityToggle(activity)}
+                                        className="w-4 h-4 rounded-none border-slate-300 text-[#004E98] focus:ring-[#004E98]"
+                                      />
+                                      <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                                        {activity}
+                                      </span>
+                                    </div>
+                                    <span className="text-sm sm:text-base font-black text-[#004E98] font-mono">
+                                      ₹{price}
+                                    </span>
+                                  </label>
+
+                                  {/* Divider line below activity item */}
+                                  {!isLastItem && (
+                                    <div className="border-b border-slate-200 my-1"></div>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
+                            <div className="h-6"></div>
+                          </>
+                        );
+                      })()}
                     </div>
-
-                    {/* Communication Address */}
-                    <div id="field-communicationAddress" className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-700 block">
-                        Communication Address <span className="text-slate-400 font-normal">(Optional)</span>
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={declarationData.communicationAddress}
-                        onChange={(e) => setDeclarationData(prev => ({ ...prev, communicationAddress: e.target.value }))}
-                        placeholder="Enter residential address (optional)"
-                        className={`w-full bg-white border ${fieldErrors.communicationAddress ? 'border-red-500' : 'border-slate-300'} rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] transition-all`}
-                      />
-                      {fieldErrors.communicationAddress && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.communicationAddress}</p>}
-                    </div>
-
-                    {/* Minor Checkbox */}
-                    <div className="pt-1">
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={declarationData.hasGuardian}
-                          onChange={(e) => setDeclarationData(prev => ({ ...prev, hasGuardian: e.target.checked }))}
-                          className="w-4 h-4 rounded-none text-[#004E98] focus:ring-[#004E98]"
-                        />
-                        <span className="text-xs font-medium text-slate-700">
-                          Participant is a minor (under 18 years) — Parent/Guardian details required
-                        </span>
-                      </label>
-                    </div>
-
-                    {/* Guardian Section if Minor */}
-                    {declarationData.hasGuardian && (
-                      <div className="p-3 bg-amber-50/70 border border-amber-200/80 space-y-3 mt-2">
-                        <p className="text-xs font-bold text-amber-900 uppercase tracking-wider">Parent / Guardian Information</p>
-                        
-                        <div id="field-guardianName" className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-700 block">Guardian Full Name <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
-                            value={declarationData.guardianName}
-                            onChange={(e) => setDeclarationData(prev => ({ ...prev, guardianName: e.target.value }))}
-                            placeholder="Parent or legal guardian name"
-                            className="w-full bg-white border border-slate-300 rounded-none px-3 py-1.5 text-xs text-slate-900"
-                          />
-                          {fieldErrors.guardianName && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.guardianName}</p>}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                          <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-700 block">Guardian Phone</label>
-                            <input
-                              type="tel"
-                              value={declarationData.guardianPhone}
-                              onChange={(e) => setDeclarationData(prev => ({ ...prev, guardianPhone: e.target.value }))}
-                              placeholder="Phone number"
-                              className="w-full bg-white border border-slate-300 rounded-none px-3 py-1.5 text-xs text-slate-900"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-700 block">Guardian Email</label>
-                            <input
-                              type="email"
-                              value={declarationData.guardianEmail}
-                              onChange={(e) => setDeclarationData(prev => ({ ...prev, guardianEmail: e.target.value }))}
-                              placeholder="Email address"
-                              className="w-full bg-white border border-slate-300 rounded-none px-3 py-1.5 text-xs text-slate-900"
-                            />
-                          </div>
-                        </div>
-
-                        <div id="field-guardianSignature" className="space-y-1 pt-1">
-                          <label className="text-xs font-semibold text-slate-700 block">Guardian Digital Signature <span className="text-red-500">*</span></label>
-                          <SignaturePad
-                            value={declarationData.guardianSignature}
-                            onChange={(sig) => setDeclarationData(prev => ({ ...prev, guardianSignature: sig }))}
-                            label="Guardian Signature"
-                          />
-                          {fieldErrors.guardianSignature && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.guardianSignature}</p>}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Guest Signature Pad */}
-                    <div id="field-signature" className="space-y-1 pt-1">
-                      <label className="text-xs font-semibold text-slate-700 block">
-                        Participant Digital Signature <span className="text-red-500">*</span>
-                      </label>
-                      <SignaturePad
-                        value={declarationData.signature}
-                        onChange={(sig) => setDeclarationData(prev => ({ ...prev, signature: sig }))}
-                        label="Participant Signature"
-                      />
-                      {fieldErrors.signature && <p className="text-[11px] text-red-500 font-medium">{fieldErrors.signature}</p>}
-                    </div>
-
-                    {/* Legal Terms Text Scroll Box */}
-                    <div className="mt-3 p-3 bg-white border border-slate-200 text-[11px] text-slate-600 leading-relaxed max-h-36 overflow-y-auto space-y-2">
-                      <p className="font-bold text-slate-800 uppercase">Participant Declaration & Assumption of Risk</p>
-                      <p>
-                        I hereby acknowledge and agree that participation in water sports and aquatic activities involves inherent risks, including but not limited to changing weather conditions, equipment operation, water currents, and physical exertion.
-                      </p>
-                      <p>
-                        I confirm that I am physically fit and capable of participating in the chosen activities, and I agree to strictly abide by all safety instructions, wear life safety equipment at all times, and follow the guidance of certified instructors and crew members.
-                      </p>
-                      <p>
-                        I voluntarily assume all risks associated with participation and hereby release Chennai Watersports, its employees, instructors, and affiliates from liability for personal injury, property loss, or damage occurring during or arising out of the activity, except where caused by gross negligence.
-                      </p>
-                    </div>
-
-                    {/* Agreement Checkbox */}
-                    <div id="field-declarationAgreed" className="pt-2">
-                      <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={declarationData.declarationAgreed}
-                          onChange={(e) => setDeclarationData(prev => ({ ...prev, declarationAgreed: e.target.checked }))}
-                          className="w-4 h-4 mt-0.5 rounded-none text-[#004E98] focus:ring-[#004E98] shrink-0"
-                        />
-                        <span className="text-xs text-slate-700 font-semibold leading-tight">
-                          I have read, understood, and agree to the participant declaration, safety regulations, and liability release terms. <span className="text-red-500">*</span>
-                        </span>
-                      </label>
-                      {fieldErrors.declarationAgreed && <p className="text-[11px] text-red-500 font-medium mt-1">{fieldErrors.declarationAgreed}</p>}
-                    </div>
-                  </div>
-
-                  {/* Navigation Buttons: Back & Submit */}
-                  <div className="pt-3 flex flex-col sm:flex-row gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setBookingStep(1)}
-                      className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-none transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-300"
-                    >
-                      <ArrowLeft size={16} /> Back to Details
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={!isFormValid || status === "loading"}
-                      className="flex-1 py-3.5 bg-[#0B1E3C] hover:bg-[#002855] text-white font-bold text-xs sm:text-sm rounded-none shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed disabled:shadow-none"
-                    >
-                      {status === "loading" ? (
-                        <span className="flex items-center gap-2">
-                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                          Submitting Booking & Declaration...
-                        </span>
-                      ) : (
-                        <>
-                          <Send size={16} /> Submit Booking & Declaration
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  {!isFormValid && (
-                    <p className="text-[11px] text-slate-400 text-center mt-1 font-medium">
-                      * Please complete all required declaration details and digital signature to submit.
-                    </p>
                   )}
                 </div>
-              )}
+
+                {/* Row 5: Total Calculated Amount */}
+                <div className="space-y-1 pt-0.5">
+                  <label className="text-xs font-semibold text-slate-600 block">Total Calculated Amount</label>
+                  <div className="bg-[#F0F5FA] border border-sky-100 rounded-none px-4 py-2.5 flex items-center justify-between">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-600">
+                      Total Bill for {formData.guests || 1} guest(s)
+                    </span>
+                    <span className="text-lg sm:text-xl font-black text-[#004E98] font-mono">
+                      ₹{totalAmount.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Row 6: Message (Optional) */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600 block">Message</label>
+                  <input
+                    type="text"
+                    name="specialRequest"
+                    value={formData.specialRequest}
+                    onChange={handleChange}
+                    placeholder="Type your message here..."
+                    className="w-full bg-slate-50/70 border border-slate-200/90 rounded-none px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004E98] focus:bg-white transition-all"
+                  />
+                </div>
+
+                {/* SUBMIT BUTTON */}
+                <div className="pt-3">
+                  <button
+                    type="submit"
+                    disabled={status === "loading"}
+                    className="w-full py-3.5 bg-[#0B1E3C] hover:bg-[#002855] text-white font-bold text-sm rounded-none shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:bg-slate-300 disabled:cursor-not-allowed"
+                  >
+                    {status === "loading" ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        Submitting Booking...
+                      </span>
+                    ) : (
+                      <>
+                        <Send size={16} /> Submit Online Booking
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
 
               {errorMessage && (
                 <div className="p-2.5 bg-red-50 border border-red-200 rounded-none text-red-700 text-xs font-semibold flex items-center gap-2">
@@ -1565,23 +1183,23 @@ export default function LandingPage() {
       {/* Footer */}
       <Footer />
 
-      {/* Popup Confirmation Modal on Form Submit - Minimalist Design */}
+      {/* Popup Confirmation Modal on Form Submit */}
       {showContactPopup && (
         <div 
-          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
           onClick={() => {
             setShowContactPopup(false);
             setEnquiryMessage('');
           }}
         >
           <div 
-            className="w-full max-w-[400px] bg-white rounded-[18px] shadow-[0_30px_60px_-20px_rgba(16,34,31,0.25)] overflow-hidden relative border border-slate-100 font-sans"
+            className="w-full max-w-[420px] bg-white rounded-[24px] shadow-2xl overflow-hidden relative border border-slate-100 font-sans p-6"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button 
               type="button"
-              className="absolute top-[18px] right-[18px] w-7 h-7 rounded-full border-none bg-transparent text-[#6b7280] hover:bg-[#e5e7eb] text-base cursor-pointer flex items-center justify-center transition-colors z-10" 
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer" 
               aria-label="Close"
               onClick={() => {
                 setShowContactPopup(false);
@@ -1592,76 +1210,85 @@ export default function LandingPage() {
             </button>
 
             {/* Header Section */}
-            <div className="p-[28px_32px_18px] text-center">
-              <div className="w-9 h-9 mx-auto mb-3.5 relative">
-                <svg viewBox="0 0 42 42" className="w-full h-full block">
-                  <circle cx="21" cy="21" r="19" className="fill-none stroke-[#16a34a] stroke-[1.4]" />
-                  <path d="M13 21.5 L18.5 27 L29 15" className="fill-none stroke-[#16a34a] stroke-[2.4] stroke-round stroke-linejoin-round" />
-                </svg>
+            <div className="text-center pt-2 pb-4">
+              <div className="w-12 h-12 mx-auto mb-3 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                <FileText size={26} />
               </div>
-              <p className="text-[11px] tracking-[0.14em] uppercase text-[#0ea5e9] font-semibold m-0 mb-1.5">Reservation</p>
-              <h1 className="text-[22px] font-semibold text-[#111111] m-0 mb-2 tracking-[-0.01em]">Booking confirmed</h1>
-              <p className="text-[13.5px] text-[#6b7280] leading-[1.5] m-0">We&apos;ll be in touch shortly to confirm your slot.</p>
+              <p className="text-[11px] tracking-widest uppercase text-sky-600 font-bold mb-1">Reservation Received</p>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Declaration Form Required</h1>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                To confirm your booking and generate your ticket pass, please complete the Liability Declaration Form.
+              </p>
             </div>
 
-            {/* Banner Call Out */}
-            <div className="mx-8 mb-5 p-[9px_12px] rounded-[10px] bg-[#e6f6fd] border border-[#bde8f8] flex items-center gap-2.5 text-left">
-              <div className="shrink-0 w-[26px] h-[26px] rounded-full bg-white flex items-center justify-center shadow-xs">
-                <svg viewBox="0 0 24 24" className="w-[13px] h-[13px]">
-                  <path d="M6.6 10.8c1.2 2.4 3.2 4.4 5.6 5.6l1.9-1.9c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1 .4 1 1v3.1c0 .6-.4 1-1 1C10.9 20 4 13.1 4 4.6c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.3 0 .7-.2 1L6.6 10.8Z" className="fill-none stroke-[#0ea5e9] stroke-2 stroke-round stroke-linejoin-round" />
-                </svg>
+            {/* Banner Alert */}
+            <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-left space-y-1">
+              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                <AlertCircle size={16} className="shrink-0 text-amber-600" />
+                <span>Action Required: Fill Declaration</span>
               </div>
-              <div className="banner-text text-[11.5px] leading-[1.35] text-[#111111]">
-                <p className="m-0"><strong className="font-semibold text-[#111111]">Our team will call you shortly</strong><br />to confirm your slot and answer any questions.</p>
-              </div>
+              <p className="text-[11.5px] text-amber-800 leading-snug">
+                Your online booking is currently <strong className="underline">PENDING DECLARATION</strong>. Complete the declaration form now using the navbar or button below.
+              </p>
             </div>
 
-            {/* Divider */}
-            <div className="h-[1px] bg-[#e5e7eb] mx-8"></div>
-
-            {/* Booking Details Table */}
+            {/* Booking Reference Box */}
             {submittedEnquiry && (
-              <dl className="m-0 p-[16px_32px_4px]">
-                <div className="flex justify-between items-baseline py-[7px] border-b border-[#e5e7eb] gap-4">
-                  <dt className="text-[12.5px] text-[#6b7280] whitespace-nowrap">Booking reference</dt>
-                  <dd className="m-0 text-[13.5px] font-semibold text-[#0ea5e9] text-right font-mono">{submittedEnquiry.bookingId}</dd>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-5 space-y-1.5 text-xs text-slate-700">
+                <div className="flex justify-between font-mono">
+                  <span className="text-slate-500">Booking Reference:</span>
+                  <strong className="text-sky-600 font-bold">{submittedEnquiry.bookingId}</strong>
                 </div>
-                <div className="flex justify-between items-baseline py-[7px] border-b border-[#e5e7eb] gap-4">
-                  <dt className="text-[12.5px] text-[#6b7280] whitespace-nowrap">Guest name</dt>
-                  <dd className="m-0 text-[13.5px] font-semibold text-[#111111] text-right">{submittedEnquiry.firstName} {submittedEnquiry.lastName}</dd>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Name:</span>
+                  <span className="font-semibold text-slate-900">{submittedEnquiry.firstName} {submittedEnquiry.lastName}</span>
                 </div>
-                <div className="flex justify-between items-baseline py-[7px] border-b border-[#e5e7eb] gap-4">
-                  <dt className="text-[12.5px] text-[#6b7280] whitespace-nowrap">Mobile number</dt>
-                  <dd className="m-0 text-[13.5px] font-semibold text-[#111111] text-right">{submittedEnquiry.phone}</dd>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Date &amp; Time:</span>
+                  <span className="font-semibold text-slate-900">{submittedEnquiry.date}, {submittedEnquiry.time}</span>
                 </div>
-                <div className="flex justify-between items-baseline py-[7px] border-b border-[#e5e7eb] gap-4">
-                  <dt className="text-[12.5px] text-[#6b7280] whitespace-nowrap">Date &amp; time</dt>
-                  <dd className="m-0 text-[13.5px] font-semibold text-[#111111] text-right">{submittedEnquiry.date}, {submittedEnquiry.time}</dd>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Guests:</span>
+                  <span className="font-semibold text-slate-900">{submittedEnquiry.guests} Person(s)</span>
                 </div>
-                <div className="flex justify-between items-baseline py-[7px] border-b border-[#e5e7eb] gap-4">
-                  <dt className="text-[12.5px] text-[#6b7280] whitespace-nowrap">Activities ({submittedEnquiry.guests} guest{submittedEnquiry.guests > 1 ? 's' : ''})</dt>
-                  <dd className="m-0 text-[13.5px] font-semibold text-[#0ea5e9] text-right max-w-[180px] truncate">{submittedEnquiry.activities?.join(', ')}</dd>
-                </div>
-                <div className="flex justify-between items-baseline py-[7px] border-b-0 gap-4">
-                  <dt className="text-[12.5px] text-[#6b7280] whitespace-nowrap">Total bill</dt>
-                  <dd className="m-0 text-[15px] font-bold text-[#111111] text-right">₹{submittedEnquiry.totalAmount?.toLocaleString('en-IN')}</dd>
-                </div>
-              </dl>
+              </div>
             )}
 
-            {/* Footer Section */}
-            <div className="p-[16px_32px_24px] space-y-2.5">
+            {/* CTA Buttons */}
+            <div className="space-y-2.5">
+              {submittedEnquiry && (
+                <Link
+                  to={`/declaration?bookingId=${submittedEnquiry.bookingId}&name=${encodeURIComponent((submittedEnquiry.firstName + ' ' + submittedEnquiry.lastName).trim())}&phone=${encodeURIComponent(submittedEnquiry.phone)}&guests=${submittedEnquiry.guests}&date=${submittedEnquiry.date}`}
+                  onClick={() => setShowContactPopup(false)}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-sky-blue to-deep-blue hover:from-sky-blue hover:to-ocean-blue text-white font-bold text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <FileText size={16} />
+                  <span>Fill Declaration Form Now</span>
+                  <ArrowRight size={16} />
+                </Link>
+              )}
+
+              {submittedEnquiry?.whatsappUrl && (
+                <a
+                  href={submittedEnquiry.whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-200 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <span>Chat on WhatsApp</span>
+                </a>
+              )}
+
               <button 
                 type="button"
-                className="w-full p-[11px] rounded-[10px] border border-[#e5e7eb] bg-white text-[#111111] text-[13.5px] font-semibold cursor-pointer transition-all hover:bg-[#e6f6fd] hover:border-[#0ea5e9] hover:text-[#0ea5e9]"
+                className="w-full py-2 text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer transition-colors"
                 onClick={() => {
                   setShowContactPopup(false);
                   setEnquiryMessage('');
                 }}
               >
-                Done
+                Close &amp; Complete Later
               </button>
-              <p className="text-center text-[11px] text-[#6b7280] m-0 pt-0.5">A confirmation will follow on your registered number.</p>
             </div>
           </div>
         </div>
