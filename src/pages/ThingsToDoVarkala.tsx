@@ -47,10 +47,10 @@ export default function ThingsToDoVarkala() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
       <SEOHead
-        title="Things to Do in Varkala & Papanasam Beach | Joy Water Sports Kerala"
-        description="Discover the top things to do in Varkala! Experience Parasailing, Jet Skiing, Speedboat rides & beach adventures on Papanasam Beach. Book online today."
+        title="Top Things to Do in Varkala & Places to Visit | Joy Water Sports Varkala"
+        description="Looking for unique places to visit & adventure activities in Varkala? Try parasailing varkala, jet ski in varkala & speed boats at Papanasam Beach with Joy Water Sports Varkala!"
         canonicalUrl="https://joywatersports.com/things-to-do-in-varkala"
-        keywords="things to do in Varkala, Papanasam beach water sports, Varkala water sports booking, Kerala holidays water sports, Varkala cliff activities, Jet ski Varkala"
+        keywords="varkala things to do, varkala places to visit, unique places to visit in varkala, varkala tourist places, water sports in varkala, parasailing varkala, jet ski in varkala, adventure activities in varkala, Joy Water Sports Varkala"
         schema={[joyWaterSportsBusinessSchema, faqSchema, breadcrumbSchema]}
       />
 
