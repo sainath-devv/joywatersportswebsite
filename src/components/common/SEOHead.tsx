@@ -16,7 +16,7 @@ export const SEOHead: React.FC<SEOProps> = ({
   canonicalUrl = 'https://joywatersports.com',
   ogImage = 'https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx',
   ogType = 'website',
-  keywords = 'water sports Varkala, Papanasam beach water sports, Varkala water sports booking, Parasailing Varkala, Jet Ski Varkala, things to do in Varkala, Kerala holidays water sports',
+  keywords = 'Joy Water Sports Varkala, water sports in varkala, parasailing varkala, jet ski in varkala, varkala tourist places, adventure activities in varkala, varkala things to do, varkala places to visit, unique places to visit in varkala, Papanasam beach water sports',
   schema
 }) => {
   useEffect(() => {
@@ -100,7 +100,7 @@ export const joyWaterSportsBusinessSchema = {
   image: 'https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx',
   telephone: '+919400000000', // Business phone number
   priceRange: '₹300 - ₹4500',
-  description: 'Premier water sports center located at Papanasam Beach, Varkala, Kerala. We offer high-flying Parasailing, Jet Skiing, Speed Boat rides, Banana Rides, Flying Fish, ATV beach quad rides, and complete adventure packages.',
+  description: 'Book top-rated water sports in Varkala with Joy Water Sports Varkala! Best price for parasailing varkala, jet ski in varkala, speed boat rides, banana rides, flying fish, and complete beach adventure packages at Papanasam Beach.',
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Papanasam Beach, North Cliff Shoreline',
