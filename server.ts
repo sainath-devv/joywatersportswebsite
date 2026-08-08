@@ -250,8 +250,8 @@ safeReadJson(COUPONS_FILE, defaultCoupons);
 // ========================================
 // GOOGLE SHEETS SYNC & RETRY QUEUE
 // ========================================
-const DEFAULT_GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbx5d0sIlWfrCecgrTOrST4r60_yWnPM_28zoYKTnUFpSeizwkJZfX7kx23AMtKDnRYF5A/exec';
-const DEFAULT_DECLARATION_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwltnDwvfSKPuHdJqmXtXBfgU2xRZJ0SOSadQbtIeIxoX2K1foJJNCOBuDMGspZEt5s6A/exec';
+const DEFAULT_GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbx1_JQA3_eWutiojc7F5GMNI0bqohjPnWwPjF4xtGQKbN0MPm8k_dIY4J_DWN7rl6xO/exec';
+const DEFAULT_DECLARATION_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxnaAdzBCNbgFN1GGoAQlUl9moXNoW-nwSmYJ2pxi64gBxT5pOVER36f4WXSdA_stj6yA/exec';
 const DEFAULT_USER_LOGIN_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyAnJHYBUOXHguJh7mfaf4EVCl8B5AoKbQy39ArPNruunkmhFTGDiXPPFjoaA4wiBWyqg/exec';
 
 async function getActiveGoogleSheetsUrl(): Promise<string> {
@@ -267,7 +267,7 @@ async function getActiveGoogleSheetsUrl(): Promise<string> {
 async function getActiveDeclarationSheetsUrl(): Promise<string> {
   try {
     const customUrl = await getAdminConfig('declaration_sheets_url');
-    if (customUrl && customUrl.trim() && !customUrl.includes('AKfycbz4QHrY') && !customUrl.includes('AKfycbyZJbtM')) {
+    if (customUrl && customUrl.trim() && !customUrl.includes('AKfycbz4QHrY') && !customUrl.includes('AKfycbyZJbtM') && !customUrl.includes('AKfycbyTp8WELmsrn6r')) {
       return customUrl.trim();
     }
   } catch (e) {}
@@ -638,7 +638,13 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
 
   const bookingId = waiver.bookingId || waiver.invoiceNo || '';
   const actionType = waiver.action || 'GENERAL_DECLARATION';
-  const targetId = waiver.id || waiver.waiverId || bookingId || `WAV-${Date.now()}`;
+  const targetId = waiver.declarationId || waiver.idNumber || waiver.waiverId || waiver.id || bookingId || `WAV-${Date.now()}`;
+  const declarationIdVal = waiver.declarationId || waiver.idNumber || targetId;
+  const idSuffixVal = waiver.idSuffix || waiver.counterTicketNo || '';
+  const idPrefixVal = waiver.idPrefix || '';
+
+  const primaryAge = waiver.guestList?.[0]?.age || waiver.age || '';
+  const primaryGender = waiver.guestList?.[0]?.gender || waiver.gender || '';
 
   const rawSig = waiver.signature || waiver.guestSignature || waiver.sig || waiver.clientSignature || '';
   const finalSig = typeof rawSig === 'string' && rawSig.startsWith('typed:') 
@@ -655,8 +661,14 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
   let guestNamesAndAgesVal = '';
   if (Array.isArray(waiver.guestList) && waiver.guestList.length > 0) {
     guestNamesAndAgesVal = waiver.guestList
-      .filter((g: any) => g && (g.name || g.age))
-      .map((g: any, i: number) => `${i + 1}. ${g.name || 'Guest'}${g.age ? ` (${g.age} yrs)` : ''}`)
+      .filter((g: any) => g && (g.name || g.age || g.gender))
+      .map((g: any, i: number) => {
+        const details = [
+          g.age ? `${g.age} yrs` : '',
+          g.gender ? g.gender : ''
+        ].filter(Boolean).join(', ');
+        return `${i + 1}. ${g.name || 'Guest'}${details ? ` (${details})` : ''}`;
+      })
       .join(', ');
   } else {
     guestNamesAndAgesVal = guestNameVal;
@@ -666,7 +678,7 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
   const phoneVal = waiver.phone || waiver.mobile || '';
   const emailVal = waiver.email || '';
   const agreementDateVal = waiver.declarationDate || waiver.agreementDate || waiver.date || new Date().toISOString().split('T')[0];
-  const declarationTimeVal = waiver.declarationTime || waiver.declarationFillingTime || waiver.fillingTime || waiver.time || new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
+  const declarationTimeVal = waiver.declarationTime || waiver.declarationFillingTime || waiver.fillingTime || waiver.time || new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit' });
   const hasMinorVal = (waiver.hasMinor || waiver.hasGuardian || waiver.guardianName) ? 'Yes' : 'No';
   const guardianNameVal = waiver.guardianName || '';
   const guardianAddressVal = waiver.guardianAddress || '';
@@ -771,29 +783,45 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
     timestamp: timestampVal,
 
     // Capitalized Spaced Heading Keys (Matching exact Google Sheets column headers)
-    "Waiver ID": targetId,
-    "ID": targetId,
+    "Submission Timestamp": timestampVal,
+    "Declaration ID": declarationIdVal,
+    "declarationId": declarationIdVal,
+    "ID Number": declarationIdVal,
+    "ID": declarationIdVal,
+    "Waiver ID": declarationIdVal,
+    "Counter Ticket No": idSuffixVal,
+    "Ticket Number": idSuffixVal,
+    "Ticket No": idSuffixVal,
+    "Booking / Invoice Ref": bookingId || 'N/A',
     "Booking ID": bookingId || 'N/A',
+    "Primary Guest Name": guestNameVal,
     "Guest Name": guestNameVal,
     "Name": guestNameVal,
     "Customer Name": guestNameVal,
-    "Total Guests": totalGuestsVal,
-    "Guest List": guestNamesAndAgesVal,
-    "Guest Names & Ages": guestNamesAndAgesVal,
-    "Communication Address": commAddressVal,
-    "Address": commAddressVal,
-    "Phone": phoneVal,
+    "Age": primaryAge,
+    "Gender": primaryGender,
     "Phone Number": phoneVal,
+    "Phone": phoneVal,
     "Mobile": phoneVal,
     "Email": emailVal,
+    "Total Guests": totalGuestsVal,
+    "Guest Details (Name, Age, Gender)": guestNamesAndAgesVal,
+    "Guest List": guestNamesAndAgesVal,
+    "Guest Names & Ages": guestNamesAndAgesVal,
     "Signature": finalSig,
     "Guest Signature": finalSig,
+    "Primary Guest Signature": finalSig,
+    "Digital Signature": finalSig,
+    "Final Declaration": "YES (Agreed & Confirmed)",
+    "Declaration Agreed": "YES (Agreed & Confirmed)",
+    "Declaration Checkbox": "YES (Agreed)",
+    "Terms Agreed": "YES (Agreed)",
     "Agreement Date": agreementDateVal,
     "Declaration Date": agreementDateVal,
     "Date": agreementDateVal,
+    "Declaration Time (12hr)": declarationTimeVal,
     "Declaration Time": declarationTimeVal,
-    "Declaration Time (24h)": declarationTimeVal,
-    "Declaration Filling Time": declarationTimeVal,
+    "Source": waiver.formType || waiver.source || 'Declaration Form',
     "Has Minor": hasMinorVal,
     "Guardian Name": guardianNameVal,
     "Guardian Address": guardianAddressVal,
@@ -871,8 +899,10 @@ async function sendWaiverToGoogleSheets(waiver: any): Promise<boolean> {
       redirect: 'follow'
     });
     const text = await response.text();
-    const isOk = response.ok || response.status === 200 || response.status === 302;
-    if (isOk && !text.includes("Script function not found") && !text.includes("Authorization is required")) {
+    const isHtmlError = text.includes("<!DOCTYPE") || text.includes("<html") || text.includes("You need access") || text.includes("Authorization is required") || text.includes("Script function not found");
+    const isSuccessText = text.includes('"status":"success"') || text.includes('"success"') || text.includes('recorded') || response.ok;
+
+    if (response.ok && isSuccessText && !isHtmlError) {
       await markQueueSynced(targetId);
       await logSheetSyncAttempt(targetId, 'SUCCESS');
       console.log(`✅ [Waiver Sheets Sync] ${actionType} sent to Google Sheets for #${targetId}:`, text.substring(0, 100));
@@ -2905,6 +2935,15 @@ const JWT_SECRET = process.env.JWT_SECRET || 'jwt_secret_jws_default_12345';
       
       await saveWaiverAgreement(waiver);
       const synced = await sendWaiverToGoogleSheets(waiver);
+
+      if (!synced) {
+        console.error(`❌ Waiver #${waiverId} failed to store in Google Sheets.`);
+        return res.status(502).json({
+          success: false,
+          syncedToSheets: false,
+          error: 'Something went wrong: Data could not be stored in Google Spreadsheet. Please verify that "Who has access" in your Google Apps Script deployment is set to "Anyone".'
+        });
+      }
 
       // If associated with an existing booking ID, update booking status to CONFIRMED
       const targetBookingId = waiver.bookingId || waiver.invoiceNo;
