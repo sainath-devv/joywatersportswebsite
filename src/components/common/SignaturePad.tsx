@@ -148,7 +148,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
         <label className="font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-1">
           {label} {required && <span className="text-red-600">*</span>}
         </label>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           <button
             type="button"
             onClick={() => {
