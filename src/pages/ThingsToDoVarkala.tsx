@@ -4,6 +4,7 @@ import { Anchor, Compass, Sun, Shield, MapPin, Sparkles, PhoneCall, CheckCircle2
 import Footer from '../components/common/Footer';
 import SEOHead, { joyWaterSportsBusinessSchema } from '../components/common/SEOHead';
 import { EXPERIENCES } from '../utils/constants';
+import ResponsiveImage from '../components/common/ResponsiveImage';
 
 export default function ThingsToDoVarkala() {
   const faqSchema = {
@@ -47,10 +48,10 @@ export default function ThingsToDoVarkala() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
       <SEOHead
-        title="Top Things to Do in Varkala & Places to Visit | Joy Water Sports Varkala"
-        description="Looking for unique places to visit & adventure activities in Varkala? Try parasailing varkala, jet ski in varkala & speed boats at Papanasam Beach with Joy Water Sports Varkala!"
+        title="Top Things to Do & Adventure Activities in Varkala | Joy Water Sports Adventure Club"
+        description="Looking for unique places to visit & top adventure activities in Varkala? Experience Parasailing with Joy Water Sports Adventure Club, Jet Skiing & Speed Boat rides at Papanasam Beach!"
         canonicalUrl="https://joywatersports.com/things-to-do-in-varkala"
-        keywords="varkala things to do, varkala places to visit, unique places to visit in varkala, varkala tourist places, water sports in varkala, parasailing varkala, jet ski in varkala, adventure activities in varkala, Joy Water Sports Varkala"
+        keywords="Adventure Club in joywatersports varkala parasailing, adventure activities in varkala, varkala things to do, varkala places to visit, unique places to visit in varkala, varkala tourist places, water sports in varkala, parasailing varkala, jet ski in varkala, Joy Water Sports Adventure Club"
         schema={[joyWaterSportsBusinessSchema, faqSchema, breadcrumbSchema]}
       />
 
@@ -58,10 +59,12 @@ export default function ThingsToDoVarkala() {
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <img
+            <ResponsiveImage
               src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx"
               alt="Joy Water Sports Logo"
               className="w-9 h-9 object-contain"
+              sizes="36px"
+              isPriority
             />
             <span className="font-extrabold text-lg text-white tracking-wide group-hover:text-[#00a6ff] transition-colors">
               JOY WATER SPORTS
@@ -115,7 +118,7 @@ export default function ThingsToDoVarkala() {
               >
                 <div className="space-y-3">
                   <div className="relative h-44 rounded-xl overflow-hidden">
-                    <img src={exp.image} alt={`${exp.title} in Varkala`} className="w-full h-full object-cover" />
+                    <ResponsiveImage src={exp.image} alt={`${exp.title} in Varkala`} className="w-full h-full object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" />
                     <span className="absolute top-3 right-3 bg-slate-950/80 text-sky-400 font-bold text-xs px-2.5 py-1 rounded-lg backdrop-blur-md">
                       ₹{exp.price} / person
                     </span>
