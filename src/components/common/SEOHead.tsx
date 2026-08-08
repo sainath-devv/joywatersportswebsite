@@ -22,6 +22,7 @@ export const SEOHead: React.FC<SEOProps> = ({
   preloadImages,
   schema
 }) => {
+  // Leverage custom useRouteSEO hook to dynamically update title & metadata based on current active route
   useRouteSEO({
     title,
     description,
@@ -33,6 +34,7 @@ export const SEOHead: React.FC<SEOProps> = ({
   });
 
   useEffect(() => {
+    // Inject / Update JSON-LD Structured Data Schema
     const scriptId = 'json-ld-seo-schema';
     let scriptElement = document.getElementById(scriptId) as HTMLScriptElement;
 
@@ -44,8 +46,8 @@ export const SEOHead: React.FC<SEOProps> = ({
     }
 
     if (schema) {
-      const formattedSchema = Array.isArray(schema)
-        ? { '@context': 'https://schema.org', '@graph': schema }
+      const formattedSchema = Array.isArray(schema) 
+        ? { '@context': 'https://schema.org', '@graph': schema } 
         : { '@context': 'https://schema.org', ...schema };
       scriptElement.textContent = JSON.stringify(formattedSchema, null, 2);
     } else {
@@ -56,6 +58,7 @@ export const SEOHead: React.FC<SEOProps> = ({
   return null;
 };
 
+// Global Default LocalBusiness Schema for Joy Water Sports Varkala
 export const joyWaterSportsBusinessSchema = {
   '@type': ['SportsActivityLocation', 'LocalBusiness', 'TouristAttraction', 'TravelAgency'],
   '@id': 'https://joywatersports.com/#organization',
@@ -79,7 +82,7 @@ export const joyWaterSportsBusinessSchema = {
     'https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws1.png',
     'https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx'
   ],
-  telephone: '+919400000000',
+  telephone: '+919400000000', // Business phone number
   priceRange: '₹300 - ₹4500',
   description: 'Joy Water Sports Adventure Club Varkala is the premier beach adventure center at Papanasam Beach, Varkala. Best price for parasailing in Varkala, jet ski, speed boat, banana boat, flying fish, and top adventure activities in Varkala.',
   address: {
