@@ -16,6 +16,7 @@ import {
 import { EXPERIENCES } from '../utils/constants';
 import Footer from '../components/common/Footer';
 import SEOHead, { joyWaterSportsBusinessSchema } from '../components/common/SEOHead';
+import ResponsiveImage from '../components/common/ResponsiveImage';
 
 interface DetailCategory {
   title: string;
@@ -399,79 +400,90 @@ export default function ActivityPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white text-slate-800 font-sans antialiased">
       <SEOHead
-        title={`${experience.title} in Varkala | Joy Water Sports Papanasam Beach`}
-        description={`Book ${experience.title} in Varkala at Papanasam Beach for ₹${experience.price}. ${spec.tagline.slice(0, 110)} Fast booking with certified safety.`}
+        title={id === 'parasailing' ? 'Parasailing in Varkala | Joy Water Sports Adventure Club | Papanasam Beach' : `${experience.title} in Varkala | Joy Water Sports Adventure Club`}
+        description={`Book ${experience.title} in Varkala with Joy Water Sports Adventure Club at Papanasam Beach for ₹${experience.price}. ${spec.tagline.slice(0, 100)} Certified safety & top adventure activities in Varkala.`}
         canonicalUrl={`https://joywatersports.com/activity/${id}`}
         ogImage={coverImage}
-        keywords={`${experience.title} Varkala, ${experience.title} Papanasam beach, water sports Varkala, Varkala water sports booking, ${experience.title} price Varkala`}
+        keywords={`Adventure Club in joywatersports varkala parasailing, ${experience.title} Varkala, adventure activities in varkala, ${experience.title} Papanasam beach, Joy Water Sports adventure club, ${experience.title} price Varkala`}
         schema={[
           joyWaterSportsBusinessSchema,
           {
+            '@type': 'ImageObject',
+            '@id': `https://joywatersports.com/activity/${id}#primaryimage`,
+            url: coverImage,
+            contentUrl: coverImage,
+            caption: `${experience.title} - Joy Water Sports Adventure Club Varkala at Papanasam Beach`,
+            name: `${experience.title} in Varkala Parasailing Adventure Club`,
+            description: `${experience.title} ride at Papanasam Beach, Varkala. Top adventure activities in Varkala offered by Joy Water Sports Adventure Club.`,
+            creditText: 'Joy Water Sports Adventure Club Varkala',
+            copyrightNotice: 'Joy Water Sports Varkala',
+            license: 'https://joywatersports.com',
+            acquireLicensePage: `https://joywatersports.com/activity/${id}`
+          },
+          {
             '@type': 'Product',
-            name: `${experience.title} in Varkala`,
-            image: coverImage,
+            name: `${experience.title} in Varkala - Joy Water Sports Adventure Club`,
+            image: galleryImages,
             description: spec.description,
+            brand: {
+              '@type': 'Brand',
+              name: 'Joy Water Sports Adventure Club'
+            },
             offers: {
               '@type': 'Offer',
               priceCurrency: 'INR',
               price: experience.price,
               availability: 'https://schema.org/InStock',
-              url: `https://joywatersports.com/activity/${id}`
-            },
-            provider: {
-              '@type': 'LocalBusiness',
-              name: 'Joy Water Sports Varkala'
+              url: `https://joywatersports.com/activity/${id}`,
+              seller: {
+                '@type': 'LocalBusiness',
+                name: 'Joy Water Sports Adventure Club Varkala'
+              }
+            }
+          },
+          {
+            '@type': 'TouristAttraction',
+            name: `${experience.title} - Top Adventure Activity in Varkala`,
+            description: `Experience ${experience.title} at Papanasam Beach with Joy Water Sports Adventure Club Varkala.`,
+            image: coverImage,
+            location: {
+              '@type': 'Place',
+              name: 'Papanasam Beach Varkala',
+              address: {
+                '@type': 'PostalAddress',
+                addressLocality: 'Varkala',
+                addressRegion: 'Kerala',
+                addressCountry: 'IN'
+              }
             }
           },
           {
             '@type': 'BreadcrumbList',
             itemListElement: [
               { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://joywatersports.com' },
-              { '@type': 'ListItem', position: 2, name: 'Activities', item: 'https://joywatersports.com/#activities' },
-              { '@type': 'ListItem', position: 3, name: experience.title, item: `https://joywatersports.com/activity/${id}` }
+              { '@type': 'ListItem', position: 2, name: 'Adventure Activities in Varkala', item: 'https://joywatersports.com/#activities' },
+              { '@type': 'ListItem', position: 3, name: `${experience.title} Parasailing`, item: `https://joywatersports.com/activity/${id}` }
             ]
           }
         ]}
       />
-      {/* Top Breadcrumb Navigation Bar */}
-      <div className="bg-[#080d1a] text-slate-400 py-3.5 px-6 sm:px-12 border-b border-slate-800/80">
-        <div className="max-w-6xl mx-auto flex items-center justify-between text-xs font-medium">
-          <Link 
-            to="/" 
-            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors group"
-          >
-            <ArrowLeft size={15} className="transition-transform group-hover:-translate-x-1 text-[#00a6ff]" />
-            <span>Back to All Water Sports</span>
-          </Link>
-          <div className="flex items-center gap-3 text-slate-400 text-xs hidden sm:flex">
-            <img 
-              src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx" 
-              alt="Joy Water Sports Logo" 
-              className="w-5 h-5 object-contain"
-            />
-            <span className="font-semibold text-white">Joy Water Sports</span>
-            <span>/</span>
-            <span>Varkala Excursions</span>
-            <span>/</span>
-            <span className="text-[#00a6ff] font-semibold">{experience.title}</span>
-          </div>
-        </div>
-      </div>
+
 
       {/* Dark Hero Header Banner with Background Image */}
       <div className="relative text-white py-24 sm:py-36 lg:py-44 px-6 sm:px-12 overflow-hidden bg-[#080d1a] min-h-[360px] sm:min-h-[440px] flex items-center">
-        <img 
+        <ResponsiveImage 
           src={spec?.heroImage || (id === 'parasailing' ? "https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/parasailingactivity.png" : experience.image)} 
-          alt={`${experience.title} background`}
+          alt={`${experience.title} Parasailing at Joy Water Sports Adventure Club Varkala, Papanasam Beach`}
+          activityName={experience.title}
+          itemProp="image"
           className="absolute inset-0 w-full h-full object-cover opacity-95"
+          sizes="100vw"
+          isPriority
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[#080d1a]/50 via-[#080d1a]/20 to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#080d1a]/40 via-transparent to-transparent pointer-events-none" />
         
         <div className="max-w-6xl mx-auto w-full relative z-10">
-          <span className="text-xs sm:text-sm font-extrabold text-[#00a6ff] tracking-[0.25em] uppercase block mb-3 drop-shadow-md">
-            VARKALA EXCURSION
-          </span>
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-wider text-white leading-none drop-shadow-xl">
             {experience.title}
           </h1>
@@ -595,10 +607,11 @@ export default function ActivityPage() {
 
           {/* Main Featured Slide Box */}
           <div className="relative group rounded-3xl overflow-hidden bg-slate-950 aspect-[16/10] sm:aspect-[16/9] shadow-2xl border border-slate-100 max-w-3xl mx-auto">
-            <img 
+            <ResponsiveImage 
               src={galleryImages[activeImageIndex]} 
               alt={`${experience.title} action shot ${activeImageIndex + 1}`}
               className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
+              sizes="(max-width: 768px) 100vw, 768px"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 pointer-events-none" />
 
@@ -656,7 +669,7 @@ export default function ActivityPage() {
                       : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
                 >
-                  <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                  <ResponsiveImage src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" sizes="100px" />
                 </button>
               ))}
             </div>
@@ -677,10 +690,11 @@ export default function ActivityPage() {
           </button>
 
           <div className="relative max-w-5xl max-h-[85vh] w-full flex items-center justify-center">
-            <img
+            <ResponsiveImage
               src={galleryImages[activeImageIndex]}
               alt={`${experience.title} fullscreen`}
               className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+              sizes="100vw"
             />
 
             {galleryImages.length > 1 && (
