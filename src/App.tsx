@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import MinimalistLoader from './components/common/MinimalistLoader';
 import JoyPreloader from './components/common/JoyPreloader';
 import { NetworkErrorProvider } from './context/NetworkErrorContext';
@@ -20,6 +21,52 @@ const VarkalaGuide = lazy(() => import('./pages/VarkalaGuide'));
 
 // Lazy load Chatbot since it contains markdown renderers, chat bubbles and can be heavy
 const Chatbot = lazy(() => import('./components/user/Chatbot').then(m => ({ default: m.Chatbot })));
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+  return null;
+}
+
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full"
+      >
+        <Routes location={location}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/admin" element={<Navigate to="/" replace />} />
+          <Route path="/activity/:id" element={<ActivityPage />} />
+          <Route path="/declaration" element={<DeclarationForm />} />
+          <Route path="/ticket/:id" element={<TicketPage />} />
+          <Route path="/ticket/manual/:id" element={<TicketPage />} />
+
+          {/* SEO Cluster & Keyword Landing Pages */}
+          <Route path="/things-to-do-in-varkala" element={<ThingsToDoVarkala />} />
+          <Route path="/best-time-to-visit-varkala" element={<VarkalaGuide />} />
+
+          {/* Keyword URL Aliases Redirecting to Activity Pages */}
+          <Route path="/parasailing-varkala" element={<Navigate to="/activity/parasailing" replace />} />
+          <Route path="/jet-ski-varkala" element={<Navigate to="/activity/jetski" replace />} />
+          <Route path="/flying-fish-varkala" element={<Navigate to="/activity/flyingfish" replace />} />
+          <Route path="/speed-boat-varkala" element={<Navigate to="/activity/speedboat" replace />} />
+          <Route path="/banana-ride-varkala" element={<Navigate to="/activity/bananaboat" replace />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
 export default function App() {
   const [showPreloader, setShowPreloader] = useState(true);
@@ -42,29 +89,11 @@ export default function App() {
             />
           )}
           <BrowserRouter>
+            <ScrollToTop />
             <NetworkErrorNotification />
             <FloatingSocialBar />
             <Suspense fallback={<MinimalistLoader message="Loading" />}>
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<Navigate to="/" replace />} />
-                <Route path="/admin" element={<Navigate to="/" replace />} />
-                <Route path="/activity/:id" element={<ActivityPage />} />
-                <Route path="/declaration" element={<DeclarationForm />} />
-                <Route path="/ticket/:id" element={<TicketPage />} />
-                <Route path="/ticket/manual/:id" element={<TicketPage />} />
-
-                {/* SEO Cluster & Keyword Landing Pages */}
-                <Route path="/things-to-do-in-varkala" element={<ThingsToDoVarkala />} />
-                <Route path="/best-time-to-visit-varkala" element={<VarkalaGuide />} />
-
-                {/* Keyword URL Aliases Redirecting to Activity Pages */}
-                <Route path="/parasailing-varkala" element={<Navigate to="/activity/parasailing" replace />} />
-                <Route path="/jet-ski-varkala" element={<Navigate to="/activity/jetski" replace />} />
-                <Route path="/flying-fish-varkala" element={<Navigate to="/activity/flyingfish" replace />} />
-                <Route path="/speed-boat-varkala" element={<Navigate to="/activity/speedboat" replace />} />
-                <Route path="/banana-ride-varkala" element={<Navigate to="/activity/bananaboat" replace />} />
-              </Routes>
+              <AnimatedRoutes />
             </Suspense>
             
             {/* Floating Chatbot Assistant wrapped separately without blocking page routes */}
