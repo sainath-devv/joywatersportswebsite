@@ -58,7 +58,7 @@ export default function FloatingSocialBar() {
       `}</style>
       <aside
         aria-label="Social Media Links"
-        className="sidebar-container fixed left-[-4px] sm:left-[-2px] md:left-[0px] top-1/2 -translate-y-1/2 z-50 w-[38px] sm:w-[40px] md:w-[42px] bg-white rounded-r-[24px] rounded-l-[10px] py-7 pl-1 pr-1 flex flex-col items-center justify-center gap-[24px] border border-[#E5E7EB] border-l-0 shadow-[0_10px_28px_rgba(0,0,0,0.12)] transition-all duration-300 ease-in-out hover:translate-x-[6px] cursor-pointer"
+        className="sidebar-container print:hidden fixed left-[-4px] sm:left-[-2px] md:left-[0px] top-1/2 -translate-y-1/2 z-50 w-[38px] sm:w-[40px] md:w-[42px] bg-white rounded-r-[24px] rounded-l-[10px] py-7 pl-1 pr-1 flex flex-col items-center justify-center gap-[24px] border border-[#E5E7EB] border-l-0 shadow-[0_10px_28px_rgba(0,0,0,0.12)] transition-all duration-300 ease-in-out hover:translate-x-[6px] cursor-pointer"
       >
         {socialLinks.map((item) => (
           <a
