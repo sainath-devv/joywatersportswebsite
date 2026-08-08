@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Printer, CheckCircle2, ArrowLeft, RotateCcw, PenTool, FileText, Anchor, Languages, Ticket, ShieldCheck, ArrowRight, Search, Download, Loader2, Check } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CheckCircle2, ArrowLeft, RotateCcw, FileText, Check, Download, Loader2, MessageSquare, AlertCircle, ShieldCheck, UserCheck, Users, Calendar, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { formatSafeErrorMessage } from '../lib/errorHandler';
-import SignaturePad from '../components/common/SignaturePad';
+import SEOHead, { createBreadcrumbSchema, joyWaterSportsBusinessSchema } from '../components/common/SEOHead';
 
 const GoogleTranslateIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -28,23 +28,36 @@ interface Translations {
   errName: string;
   errPhone: string;
   errSig: string;
+  errConfirmation: string;
   terms: string[];
   guestDetailsHeader: string;
   totalGuestsLabel: string;
+  totalGuestsSubtitle: string;
   guestListHeader: string;
   guestNumberLabel: (n: number) => string;
   ageLabel: string;
   agePlaceholder: string;
   guestNameLabel: string;
   guestNamePlaceholder: string;
+  primaryContactHeader: string;
+  primaryContactSubtitle: string;
   commAddressLabel: string;
   commAddressPlaceholder: string;
   phoneLabel: string;
   phonePlaceholder: string;
   emailLabel: string;
   emailPlaceholder: string;
+  activitiesHeader: string;
+  applyToAllGuestsLabel: string;
+  customizePerGuestLabel: string;
+  finalDeclarationHeader: string;
+  finalDeclarationText: string;
+  finalDeclarationCheckboxLabel: string;
   guestSigLabel: string;
+  signForGroupLabel: string;
+  individualSignaturesLabel: string;
   dateLabel: string;
+  summaryHeader: string;
   guardianHeader: string;
   guardianNote: string;
   guardianNameLabel: string;
@@ -62,6 +75,8 @@ interface Translations {
   submitBtn: string;
   submittingBtn: string;
   footerNotice: string;
+  sendWhatsappBtn: string;
+  startNewBtn: string;
 }
 
 const languages: { key: LanguageKey; label: string; nativeName: string }[] = [
@@ -95,9 +110,10 @@ const translations: Record<LanguageKey, Translations> = {
     submittedSuccessMsg: (name) => `Thank you, ${name}. Your liability waiver and declaration agreement has been recorded successfully.`,
     printCompleted: "Print Completed Copy",
     returnHome: "Return to Home Page",
-    errName: "Please enter Guest Name.",
-    errPhone: "Please enter Telephone / Mobile Number.",
+    errName: "Please enter Full Name for Guest 1.",
+    errPhone: "Please enter Primary Contact Telephone / Mobile Number.",
     errSig: "Please provide Guest Signature before submitting.",
+    errConfirmation: "Please check the confirmation checkbox agreeing to the declaration terms.",
     terms: [
       "I certify that I am fully aware of the risks involved in the activity and I have been briefed about the safety procedures.",
       "I'm aware about the DO's and Don'ts, medical restrictions and local govt. regulations.",
@@ -108,26 +124,38 @@ const translations: Record<LanguageKey, Translations> = {
       "I expressly agree and promise to accept and assume all of the risks existing in this activity. My participation in this activity is purely voluntary, and I elect to participate in spite of the risks.",
       "Indemnity: I (or my representative) agree to protect and compensate the company against any costs or damages resulting from my negligence or misrepresentation."
     ],
-    guestDetailsHeader: "GUEST DETAILS",
-    totalGuestsLabel: "Total Number of Guests (Max 20)",
-    guestListHeader: "Guest Name & Age List",
+    guestDetailsHeader: "GUEST / PARTICIPANT DETAILS",
+    totalGuestsLabel: "TOTAL NUMBER OF GUESTS",
+    totalGuestsSubtitle: "Select how many guests are participating in this trip.",
+    guestListHeader: "Participant Name & Age List",
     guestNumberLabel: (n) => `Guest ${n}`,
     ageLabel: "Age",
     agePlaceholder: "Age",
-    guestNameLabel: "Guest Name",
-    guestNamePlaceholder: "Enter full guest name",
-    commAddressLabel: "Communication Address",
+    guestNameLabel: "Full Name",
+    guestNamePlaceholder: "Enter full participant name",
+    primaryContactHeader: "PRIMARY CONTACT DETAILS",
+    primaryContactSubtitle: "This person will be the primary contact for this booking.",
+    commAddressLabel: "Full Communication Address",
     commAddressPlaceholder: "Enter full communication address",
-    phoneLabel: "Telephone / Mobile No",
+    phoneLabel: "Mobile Number",
     phonePlaceholder: "+91 98765 43210",
     emailLabel: "Email Address",
     emailPlaceholder: "guest@example.com",
-    guestSigLabel: "Guest Signature",
+    activitiesHeader: "PARTICIPATING WATER SPORTS ACTIVITIES",
+    applyToAllGuestsLabel: "Apply selected activities to all guests",
+    customizePerGuestLabel: "Customize activities per participant",
+    finalDeclarationHeader: "FINAL DECLARATION",
+    finalDeclarationText: "I confirm that the information provided above is accurate and that I have read, understood, and agreed to the safety and liability terms stated in this declaration.",
+    finalDeclarationCheckboxLabel: "I confirm and agree to the above declaration.",
+    guestSigLabel: "GUEST SIGNATURE",
+    signForGroupLabel: "Primary guest signs on behalf of all participants",
+    individualSignaturesLabel: "Collect individual participant signatures",
     dateLabel: "Date",
-    guardianHeader: "GUARDIAN DETAILS",
-    guardianNote: "In case of children the age of above 16 years or below, the Guardian of the children should submit liability release and assumption of risk agreement-",
-    guardianNameLabel: "Guardian Name",
-    guardianNamePlaceholder: "Guardian full name (if applicable)",
+    summaryHeader: "DECLARATION SUMMARY",
+    guardianHeader: "GUARDIAN DETAILS (FOR MINORS UNDER 18)",
+    guardianNote: "In case of children or minors under 18 years, the Guardian must provide consent and details below:",
+    guardianNameLabel: "Guardian Full Name",
+    guardianNamePlaceholder: "Guardian full name",
     guardianAddressPlaceholder: "Guardian communication address",
     guardianPhonePlaceholder: "Guardian contact number",
     guardianSigLabel: "Guardian Signature",
@@ -138,9 +166,11 @@ const translations: Record<LanguageKey, Translations> = {
     trip1Placeholder: "e.g. 10:00 AM",
     trip2Placeholder: "e.g. 11:30 AM",
     boatLabel: "Boat :",
-    submitBtn: "Submit",
+    submitBtn: "Submit Waiver",
     submittingBtn: "Submitting...",
-    footerNotice: "By clicking Submit Waiver, you acknowledge that all information provided is accurate and legally binding."
+    footerNotice: "By clicking Submit Waiver, you acknowledge that all information provided is accurate and legally binding.",
+    sendWhatsappBtn: "Send Confirmation via WhatsApp",
+    startNewBtn: "Start New Declaration"
   },
   ml: {
     title: "ജോയ് വാട്ടർ സ്പോർട്സ്",
@@ -150,12 +180,13 @@ const translations: Record<LanguageKey, Translations> = {
     printForm: "ഫോം പ്രിൻ്റ് ചെയ്യുക",
     backToHome: "ഹോമിലേക്ക് മടങ്ങുക",
     submittedSuccessTitle: "ബാധ്യതാ നിരാകരണ ഫോം വിജയകരമായി സമർപ്പിച്ചു!",
-    submittedSuccessMsg: (name) => `നന്ദി, ${name}. നിങ്ങളുടെ ബാധ്യതാ കരാർ രേഖപ്പെടുത്തുകയും ബുക്കിംഗ് പാസുമായി ബന്ധിപ്പിക്കുകയും ചെയ്തിട്ടുണ്ട്.`,
+    submittedSuccessMsg: (name) => `നന്ദി, ${name}. നിങ്ങളുടെ ബാധ്യതാ കരാർ വിജയകരമായി രേഖപ്പെടുത്തിയിട്ടുണ്ട്.`,
     printCompleted: "പൂർത്തിയാക്കിയ കോപ്പി പ്രിൻ്റ് ചെയ്യുക",
     returnHome: "ഹോം പേജിലേക്ക് മടങ്ങുക",
-    errName: "ദയവായി അതിഥിയുടെ പേര് നൽകുക.",
-    errPhone: "ദയവായി ഫോൺ / മൊബൈൽ നമ്പർ നൽകുക.",
-    errSig: "സമർപ്പിക്കുന്നതിന് മുൻപ് അതിഥിയുടെ ഒപ്പ് നൽകുക.",
+    errName: "ദയവായി ഗസ്റ്റ് 1-ൻ്റെ പേര് നൽകുക.",
+    errPhone: "ദയവായി പ്രൈമറി കോൺടാക്റ്റ് ഫോൺ നമ്പർ നൽകുക.",
+    errSig: "സമർപ്പിക്കുന്നതിന് മുൻപ് ഒപ്പ് നൽകുക.",
+    errConfirmation: "ഡിക്ലറേഷൻ വ്യവസ്ഥകൾ അംഗീകരിക്കുന്ന ചെക്ക്ബോക്സ് തിരഞ്ഞെടുക്കുക.",
     terms: [
       "ഈ പ്രവർത്തനത്തിൽ ഉൾപ്പെട്ടിരിക്കുന്ന അപകടസാധ്യതകളെക്കുറിച്ച് എനിക്ക് പൂർണ്ണ ബോധ്യമുണ്ടെന്നും സുരക്ഷാ നടപടികളെക്കുറിച്ച് എന്നെ വിശദീകരിച്ചിട്ടുണ്ടെന്നും ഞാൻ സാക്ഷ്യപ്പെടുത്തുന്നു.",
       "ചെയ്യേണ്ടതും ചെയ്യരുതാത്തതുമായ കാര്യങ്ങൾ, മെഡിക്കൽ നിയന്ത്രണങ്ങൾ, പ്രാദേശിക സർക്കാർ നിയമങ്ങൾ എന്നിവയെക്കുറിച്ച് ഞാൻ ബോധവാനാണ്.",
@@ -166,26 +197,38 @@ const translations: Record<LanguageKey, Translations> = {
       "ഈ പ്രവർത്തനത്തിൽ നിലനിൽക്കുന്ന എല്ലാ അപകടസാധ്യതകളും സ്വീകരിക്കാനും ഏറ്റെടുക്കാനും ഞാൻ വ്യക്തമായി സമ്മതിക്കുന്നു. എൻ്റെ പങ്കാളിത്തം തികച്ചും സ്വമേധയാ ഉള്ളതാണ്.",
       "നഷ്ടപരിഹാരം: എൻ്റെ അശ്രദ്ധയോ തെറ്റായ വിവരങ്ങളോ മൂലം ഉണ്ടാകുന്ന ചെലവുകളിൽ നിന്നോ നാശനഷ്ടങ്ങളിൽ നിന്നോ കമ്പനിയെ സംരക്ഷിക്കാനും നഷ്ടപരിഹാരം നൽകാനും ഞാൻ സമ്മതിക്കുന്നു."
     ],
-    guestDetailsHeader: "അതിഥിയുടെ വിവരങ്ങൾ",
-    totalGuestsLabel: "ആകെ അതിഥികളുടെ എണ്ണം (പരമാവധി 20)",
-    guestListHeader: "അതിഥികളുടെ പേരും വയസ്സും",
+    guestDetailsHeader: "പങ്കെടുക്കുന്നവരുടെ വിവരങ്ങൾ",
+    totalGuestsLabel: "ആകെ അതിഥികളുടെ എണ്ണം",
+    totalGuestsSubtitle: "ഈ യാത്രയിൽ പങ്കെടുക്കുന്ന അതിഥികളുടെ എണ്ണം തിരഞ്ഞെടുക്കുക.",
+    guestListHeader: "പങ്കെടുക്കുന്നവരുടെ പേരും വയസ്സും",
     guestNumberLabel: (n) => `അതിഥി ${n}`,
     ageLabel: "വയസ്സ്",
     agePlaceholder: "വയസ്സ്",
-    guestNameLabel: "അതിഥിയുടെ പേര്",
+    guestNameLabel: "മുഴുവൻ പേര്",
     guestNamePlaceholder: "അതിഥിയുടെ മുഴുവൻ പേര് നൽകുക",
-    commAddressLabel: "ബന്ധപ്പെടേണ്ട വിലാസം",
-    commAddressPlaceholder: "മുഴുവൻ വിലാസം നൽകുക",
-    phoneLabel: "ഫോൺ / മൊബൈൽ നമ്പർ",
+    primaryContactHeader: "പ്രൈമറി കോൺടാക്റ്റ് വിവരങ്ങൾ",
+    primaryContactSubtitle: "ഈ ബുക്കിംഗിന്റെ പ്രധാന ബന്ധപ്പെടേണ്ട വ്യക്തിയായിരിക്കും ഇത്.",
+    commAddressLabel: "മുഴുവൻ വിലാസം",
+    commAddressPlaceholder: "വിലാസം നൽകുക",
+    phoneLabel: "മൊബൈൽ നമ്പർ",
     phonePlaceholder: "+91 98765 43210",
     emailLabel: "ഇമെയിൽ വിലാസം",
     emailPlaceholder: "guest@example.com",
+    activitiesHeader: "പങ്കെടുക്കുന്ന വാട്ടർ സ്പോർട്സ് ഇനങ്ങൾ",
+    applyToAllGuestsLabel: "തിരഞ്ഞെടുത്ത ഇനങ്ങൾ എല്ലാ അതിഥികൾക്കും ബാധകമാക്കുക",
+    customizePerGuestLabel: "ഓരോ വ്യക്തിക്കും പ്രത്യേകം തിരഞ്ഞെടുക്കുക",
+    finalDeclarationHeader: "അന്തിമ ഉറപ്പ്",
+    finalDeclarationText: "മുകളിൽ നൽകിയിട്ടുള്ള വിവരങ്ങൾ കൃത്യമാണെന്നും സുരക്ഷാ, ബാധ്യതാ നിബന്ധനകൾ ഞാൻ വായിച്ചു മനസ്സിലാക്കി അംഗീകരിക്കുന്നുവെന്നും ഉറപ്പുനൽകുന്നു.",
+    finalDeclarationCheckboxLabel: "ഞാൻ മുകളിലുള്ള ഡിക്ലറേഷൻ ഉറപ്പാക്കുകയും അംഗീകരിക്കുകയും ചെയ്യുന്നു.",
     guestSigLabel: "അതിഥിയുടെ ഒപ്പ്",
+    signForGroupLabel: "പ്രധാന അതിഥി ഗ്രൂപ്പിന് വേണ്ടി ഒപ്പിടുന്നു",
+    individualSignaturesLabel: "ഓരോരുത്തരും വെവ്വേറെ ഒപ്പിടുക",
     dateLabel: "തീയതി",
-    guardianHeader: "രക്ഷിതാവിൻ്റെ വിവരങ്ങൾ",
-    guardianNote: "16 വയസ്സോ അതിൽ കുറവോ പ്രായമുള്ള കുട്ടികളുടെ കാര്യത്തിൽ, കുട്ടികളുടെ രക്ഷിതാവ് ബാധ്യത റിലീസും അപകടസാധ്യത ഏറ്റെടുക്കൽ കരാറും സമർപ്പിക്കണം-",
+    summaryHeader: "ഡിക്ലറേഷൻ സംഗ്രഹം",
+    guardianHeader: "രക്ഷിതാവിൻ്റെ വിവരങ്ങൾ (18 വയസ്സിന് താഴെയുള്ളവർക്ക്)",
+    guardianNote: "18 വയസ്സിൽ താഴെയുള്ള കുട്ടികൾക്ക് രക്ഷിതാവിൻ്റെ വിവരങ്ങൾ നൽകണം-",
     guardianNameLabel: "രക്ഷിതാവിൻ്റെ പേര്",
-    guardianNamePlaceholder: "രക്ഷിതാവിൻ്റെ മുഴുവൻ പേര് (ബാധകമെങ്കിൽ)",
+    guardianNamePlaceholder: "രക്ഷിതാവിൻ്റെ മുഴുവൻ പേര്",
     guardianAddressPlaceholder: "രക്ഷിതാവിൻ്റെ വിലാസം",
     guardianPhonePlaceholder: "രക്ഷിതാവിൻ്റെ ഫോൺ നമ്പർ",
     guardianSigLabel: "രക്ഷിതാവിൻ്റെ ഒപ്പ്",
@@ -196,9 +239,11 @@ const translations: Record<LanguageKey, Translations> = {
     trip1Placeholder: "ഉദാ: 10:00 AM",
     trip2Placeholder: "ഉദാ: 11:30 AM",
     boatLabel: "ബോട്ട് :",
-    submitBtn: "സമർപ്പിക്കുക",
+    submitBtn: "ഡെക്ലറേഷൻ സമർപ്പിക്കുക",
     submittingBtn: "സമർപ്പിക്കുന്നു...",
-    footerNotice: "സമർപ്പിക്കുക ബട്ടൺ ക്ലിക്കുചെയ്യുന്നതിലൂടെ, നൽകിയിട്ടുള്ള എല്ലാ വിവരങ്ങളും കൃത്യവും നിയമപരമായി ബാധകവുമാണെന്ന് നിങ്ങൾ അംഗീകരിക്കുന്നു."
+    footerNotice: "സമർപ്പിക്കുക ബട്ടൺ ക്ലിക്കുചെയ്യുന്നതിലൂടെ വിവരങ്ങൾ കൃത്യവും നിയമപരവുമാണെന്ന് നിങ്ങൾ അംഗീകരിക്കുന്നു.",
+    sendWhatsappBtn: "വാട്സ്ആപ്പിൽ കൺഫർമേഷൻ അയക്കുക",
+    startNewBtn: "പുതിയ ഡിക്ലറേഷൻ ഫോം"
   },
   ta: {
     title: "ஜாய் வாட்டர் ஸ்போர்ட்ஸ்",
@@ -208,42 +253,55 @@ const translations: Record<LanguageKey, Translations> = {
     printForm: "படிவத்தை அச்சிடுக",
     backToHome: "முகப்பிற்குத் திரும்பு",
     submittedSuccessTitle: "பொறுப்புத் துறப்பு படிவம் வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது!",
-    submittedSuccessMsg: (name) => `நன்றி, ${name}. உங்கள் ஒப்பந்தம் பதிவுசெய்யப்பட்டு உங்கள் புக்கிங் பாஸுடன் இணைக்கப்பட்டுள்ளது.`,
+    submittedSuccessMsg: (name) => `நன்றி, ${name}. உங்கள் ஒப்பந்தம் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளது.`,
     printCompleted: "பூர்த்தி செய்யப்பட்ட நகலை அச்சிடுக",
     returnHome: "முகப்புப் பக்கத்திற்குத் திரும்பு",
-    errName: "தயவுசெய்து விருந்தினர் பெயரை உள்ளிடவும்.",
-    errPhone: "தயவுசெய்து தொலைபேசி / மொபைல் எண்ணை உள்ளிடவும்.",
-    errSig: "சமர்ப்பிப்பதற்கு முன் விருந்தினர் கையொப்பத்தை வழங்கவும்.",
+    errName: "தயவுசெய்து விருந்தினர் 1 இன் பெயரை உள்ளிடவும்.",
+    errPhone: "தயவுசெய்து தொடர்பு மொபைல் எண்ணை உள்ளிடவும்.",
+    errSig: "சமர்ப்பிப்பதற்கு முன் கையொப்பத்தை வழங்கவும்.",
+    errConfirmation: "உறுதிப்படுத்தல் பெட்டியைத் தேர்ந்தெடுக்கவும்.",
     terms: [
       "இந்தச் செயல்பாட்டில் உள்ள ஆபத்துகள் குறித்து எனக்கு முழுமையாகத் தெரியும் என்றும், பாதுகாப்பு நடைமுறைகள் குறித்து எனக்கு விளக்கமளிக்கப்பட்டுள்ளது என்றும் சான்றளிக்கிறேன்.",
       "செய்ய வேண்டியவை மற்றும் செய்யக்கூடாதவை, மருத்துவக் கட்டுப்பாடுகள் மற்றும் உள்ளூர் அரசு விதிமுறைகள் பற்றி எனக்குத் தெரியும்.",
-      "இந்தச் செயல்பாட்டை மேற்கொள்வதற்கு நான் உடலளவில் தகுதியுடன் இருக்கிறேன் என்றும், இதயம் சம்பந்தப்பட்ட பிரச்சினைகள், ரத்த அழுத்தம், ஆஸ்துமா போன்ற தீவிர மருத்துவப் பிரச்சினைகள் இல்லை என்றும் கூறுகிறேன்.",
-      "இந்த ஒப்பந்தத்தில் கையெழுத்திட எனக்கு சட்டப்பூர்வ வயதும் தகுதியும் உள்ளது அல்லது எனது பெற்றோர்/காப்பாளரின் ஒப்புதலைப் பெற்றுள்ளேன் என்று கூறுகிறேன்.",
-      "எனக்கு ஏற்படும் எந்தவொரு காயம், இறப்பு அல்லது பிற சேதங்களுக்கு ஜாய் வாட்டர் ஸ்போர்ட்ஸ் அல்லது அதன் ஊழியர்கள் பொறுப்பல்ல என்பதை ஒப்புக்கொள்கிறேன்.",
-      "இங்குள்ள விதிமுறைகள் ஒப்பந்தத்திற்குட்பட்டவை என்றும், எனது சொந்த விருப்பத்தின் பேரில் கையெழுத்திடுகிறேன் என்றும் புரிந்து கொள்கிறேன்.",
-      "இந்தச் செயல்பாட்டில் உள்ள அனைத்து ஆபத்துகளையும் ஏற்க ஒப்புக்கொள்கிறேன். எனது பங்கேற்பு முற்றிலும் தன்னிச்சையானது.",
-      "இழப்பீடு: எனது அலட்சியத்தால் ஏற்படும் செலவுகள் அல்லது சேதங்களிலிருந்து நிறுவனத்தைப் பாதுகாக்கவும் இழப்பீடு வழங்கவும் ஒப்புக்கொள்கிறேன்."
+      "இந்தச் செயல்பாட்டை மேற்கொள்வதற்கு நான் உடலளவில் தகுதியுடன் இருக்கிறேன் என்றும், தீவிர மருத்துவப் பிரச்சினைகள் இல்லை என்றும் கூறுகிறேன்.",
+      "இந்த ஒப்பந்தத்தில் கையெழுத்திட எனக்கு சட்டப்பூர்வ வயதும் தகுதியும் உள்ளது அல்லது காப்பாளரின் ஒப்புதலைப் பெற்றுள்ளேன்.",
+      "எனக்கு ஏற்படும் எந்தவொரு காயம், இறப்பு அல்லது பிற சேதங்களுக்கு ஜாய் வாட்டர் ஸ்போர்ட்ஸ் பொறுப்பல்ல என்பதை ஒப்புக்கொள்கிறேன்.",
+      "எனது சொந்த விருப்பத்தின் பேரில் கையெழுத்திடுகிறேன் என்று புரிந்து கொள்கிறேன்.",
+      "இந்தச் செயல்பாட்டில் உள்ள அனைத்து ஆபத்துகளையும் ஏற்க ஒப்புக்கொள்கிறேன்.",
+      "இழப்பீடு: எனது அலட்சியத்தால் ஏற்படும் செலவுகள் அல்லது சேதங்களிலிருந்து நிறுவனத்திற்கு இழப்பீடு வழங்க ஒப்புக்கொள்கிறேன்."
     ],
-    guestDetailsHeader: "விருந்தினர் விவரங்கள்",
-    totalGuestsLabel: "மொத்த விருந்தினர்களின் எண்ணிக்கை (அதிகபட்சம் 20)",
-    guestListHeader: "விருந்தினர்களின் பெயர் & வயது பட்டியல்",
+    guestDetailsHeader: "பங்கேற்பாளர்களின் விவரங்கள்",
+    totalGuestsLabel: "மொத்த விருந்தினர்களின் எண்ணிக்கை",
+    totalGuestsSubtitle: "இந்தப் பயணத்தில் பங்கேற்கும் விருந்தினர்களின் எண்ணிக்கையைத் தேர்ந்தெடுக்கவும்.",
+    guestListHeader: "பங்கேற்பாளர்களின் பெயர் & வயது பட்டியல்",
     guestNumberLabel: (n) => `விருந்தினர் ${n}`,
     ageLabel: "வயது",
     agePlaceholder: "வயது",
-    guestNameLabel: "விருந்தினர் பெயர்",
-    guestNamePlaceholder: "முழு விருந்தினர் பெயரை உள்ளிடவும்",
-    commAddressLabel: "தொடர்பு முகவரி",
-    commAddressPlaceholder: "முழு முகவரியை உள்ளிடவும்",
-    phoneLabel: "தொலைபேசி / மொபைல் எண்",
+    guestNameLabel: "முழு பெயர்",
+    guestNamePlaceholder: "முழு பெயரை உள்ளிடவும்",
+    primaryContactHeader: "முதன்மை தொடர்பு விவரங்கள்",
+    primaryContactSubtitle: "இந்த நபர் இந்த புக்கிங்கிற்கான முதன்மை தொடர்பாளராக இருப்பார்.",
+    commAddressLabel: "முழு முகவரி",
+    commAddressPlaceholder: "முகவரியை உள்ளிடவும்",
+    phoneLabel: "மொபைல் எண்",
     phonePlaceholder: "+91 98765 43210",
     emailLabel: "மின்னஞ்சல் முகவரி",
     emailPlaceholder: "guest@example.com",
-    guestSigLabel: "விருந்தினர் கையொப்பம்",
+    activitiesHeader: "பங்கேற்கும் வாட்டர் ஸ்போர்ட்ஸ் விளையாட்டுகள்",
+    applyToAllGuestsLabel: "தேர்ந்தெடுக்கப்பட்ட விளையாட்டுகளை அனைத்து விருந்தினர்களுக்கும் பொருத்துக",
+    customizePerGuestLabel: "ஒவ்வொரு விருந்தினருக்கும் தனித்தனியாக தேர்ந்தெடுக்கவும்",
+    finalDeclarationHeader: "இறுதி உறுதிமொழி",
+    finalDeclarationText: "மேலே வழங்கப்பட்ட தகவல்கள் துல்லியமானவை என்றும் பாதுகாப்பு விதிமுறைகளை படித்து ஒப்புக்கொள்கிறேன் என்றும் உறுதிப்படுத்துகிறேன்.",
+    finalDeclarationCheckboxLabel: "மேற்கண்ட அறிவிப்பை நான் உறுதிசெய்து ஒப்புக்கொள்கிறேன்.",
+    guestSigLabel: "விருந்தினரின் கையொப்பம்",
+    signForGroupLabel: "முதன்மை விருந்தினர் குழு சார்பாக கையொப்பமிடுகிறார்",
+    individualSignaturesLabel: "ஒவ்வொருவரும் தனித்தனியாக கையொப்பமிடுகின்றனர்",
     dateLabel: "தேதி",
-    guardianHeader: "காப்பாளர் விவரங்கள்",
-    guardianNote: "16 வயது மற்றும் அதற்கு குறைவான சிறார்களுக்கு, அவர்களின் காப்பாளர் பொறுப்புத் துறப்பு ஒப்பந்தத்தைச் சமர்ப்பிக்க வேண்டும்-",
-    guardianNameLabel: "காப்பாளர் பெயர்",
-    guardianNamePlaceholder: "காப்பாளர் முழு பெயர் (பொருந்தினால்)",
+    summaryHeader: "அறிவிப்பு சுருக்கம்",
+    guardianHeader: "காப்பாளர் விவரங்கள் (18 வயதுக்குட்பட்டோருக்கு)",
+    guardianNote: "18 வயதுக்குட்பட்ட சிறார்களுக்கு காப்பாளர் விவரங்கள் தேவை-",
+    guardianNameLabel: "காப்பாளர் முழு பெயர்",
+    guardianNamePlaceholder: "காப்பாளர் பெயர்",
     guardianAddressPlaceholder: "காப்பாளர் முகவரி",
     guardianPhonePlaceholder: "காப்பாளர் மொபைல் எண்",
     guardianSigLabel: "காப்பாளர் கையொப்பம்",
@@ -254,9 +312,11 @@ const translations: Record<LanguageKey, Translations> = {
     trip1Placeholder: "எ.கா: 10:00 AM",
     trip2Placeholder: "எ.கா: 11:30 AM",
     boatLabel: "படகு :",
-    submitBtn: "சமர்ப்பி",
+    submitBtn: "படிவத்தை சமர்ப்பி",
     submittingBtn: "சமர்ப்பிக்கப்படுகிறது...",
-    footerNotice: "சமர்ப்பி என்பதைக் கிளிக் செய்வதன் மூலம், வழங்கப்பட்ட அனைத்துத் தகவல்களும் துல்லியமானவை மற்றும் சட்டப்பூர்வமானவை என்பதை ஒப்புக்கொள்கிறீர்கள்."
+    footerNotice: "சமர்ப்பி என்பதைக் கிளிக் செய்வதன் மூலம் அனைத்து தகவல்களும் சட்டப்பூர்வமானவை என்பதை ஒப்புக்கொள்கிறீர்கள்.",
+    sendWhatsappBtn: "WhatsApp மூலம் உறுதிப்படுத்தலை அனுப்புக",
+    startNewBtn: "புதிய படிவத்தைத் தொடங்கு"
   },
   te: {
     title: "జాయ్ వాటర్ స్పోర్ట్స్",
@@ -266,44 +326,57 @@ const translations: Record<LanguageKey, Translations> = {
     printForm: "ఫారమ్‌ను ప్రింట్ చేయండి",
     backToHome: "హోమ్‌కి తిరిగి వెళ్ళండి",
     submittedSuccessTitle: "బాధ్యత మినహాయింపు మరియు ప్రకటన విజయవంతంగా సమర్పించబడింది!",
-    submittedSuccessMsg: (name) => `ధన్యవాదాలు, ${name}. మీ మినహాయింపు ఒప్పందం నమోదు చేయబడింది మరియు మీ బుకింగ్ పాస్‌కు జోడించబడింది.`,
+    submittedSuccessMsg: (name) => `ధన్యవాదాలు, ${name}. మీ వేవర్ ఒప్పందం నమోదు చేయబడింది.`,
     printCompleted: "పూర్తి కాపీని ప్రింట్ చేయండి",
     returnHome: "హోమ్ పేజీకి తిరిగి వెళ్లండి",
-    errName: "దయచేసి అతిథి పేరును నమోదు చేయండి.",
-    errPhone: "దయచేసి టెలిఫోన్ / మొబైల్ సంఖ్యను నమోదు చేయండి.",
-    errSig: "సమర్పించే ముందు దయచేసి సంతకం చేయండి.",
+    errName: "దయచేసి గెస్ట్ 1 పేరును నమోదు చేయండి.",
+    errPhone: "దయచేసి ప్రైమరీ మొబైల్ నంబర్‌ను నమోదు చేయండి.",
+    errSig: "సమర్పించే ముందు సంతకం చేయండి.",
+    errConfirmation: "దయచేసి కన్ఫర్మేషన్ చెక్‌బాక్స్‌ను ఎంచుకోండి.",
     terms: [
-      "ఈ కార్యకలాపంలో ఉన్న ప్రమాదాల గురించి నాకు పూర్తిగా తెలుసని మరియు రక్షణ విధానాల గురించి నాకు వివరించబడిందని నేను ధృవీకరిస్తున్నాను.",
-      "చేయవలసినవి మరియు చేయకూడనివి, వైద్య పరిమితులు మరియు స్థానిక ప్రభుత్వ నిబంధనల గురించి నాకు అవగాహన ఉంది.",
-      "నేను ఈ కార్యకలాపాన్ని నిర్వహించడానికి శారీరకంగా ఫిట్‌గా ఉన్నానని మరియు ఎటువంటి గుండె జబ్బులు, రక్తపోటు, ఆస్తమా లేదా ఇతర తీవ్రమైన అనారోగ్యాలతో బాధపడటం లేదని తెలుపుతున్నాను.",
-      "నేను ఈ ఒప్పందంపై సంతకం చేయడానికి వయస్సు మరియు చట్టబద్ధంగా అర్హుడనని లేదా నా తల్లిదండ్రులు/సంరక్షకుల రాతపూర్వక సమ్మతిని పొందుతున్నానని తదుపరి ప్రకటిస్తున్నాను.",
-      "నాకు కలిగే ఏదైనా గాయం, మరణం లేదా ఇతర నష్టాలకు జాయ్ వాటర్ స్పోర్ట్స్ లేదా దాని ఉద్యోగులు బాధ్యత వహించరని నేను అర్థం చేసుకున్నాను మరియు అంగీకరిస్తున్నాను.",
-      "ఇక్కడ ఉన్న నిబంధనలు ఒప్పందపరమైనవని మరియు నా చట్టపరమైన హక్కులను వదులుకోవడానికి సమ్మతిస్తూ నా సొంత నిర్ణయంతో సంతకం చేస్తున్నానని అర్థం చేసుకున్నాను.",
-      "ఈ కార్యకలాపంలో ఉన్న అన్ని ప్రమాదాలను స్వీకరించడానికి నేను స్పష్టంగా అంగీకరిస్తున్నాను. నా భాగస్వామ్యం పూర్తిగా స్వచ్ఛందం.",
-      "నష్టపరిహారం: నా నిర్లక్ష్యం లేదా తప్పు సమాచారం వలన కలిగే ఏదైనా ఖర్చులు లేదా నష్టాల నుండి కంపెనీని రక్షించడానికి మరియు పరిహారం చెల్లించడానికి నేను అంగీకరిస్తున్నాను."
+      "ఈ కార్యకలాపంలో ఉన్న ప్రమాదాల గురించి నాకు పూర్తిగా తెలుసని మరియు రక్షణ విధానాల గురించి వివరించబడిందని ధృవీకరిస్తున్నాను.",
+      "చేయవలసినవి మరియు చేయకూడనివి, వైద్య పరిమితుల గురించి నాకు అవగాహన ఉంది.",
+      "నేను శారీరకంగా ఫిట్‌గా ఉన్నానని మరియు ఎటువంటి తీవ్రమైన అనారోగ్యాలతో బాధపడటం లేదని తెలుపుతున్నాను.",
+      "నేను ఈ ఒప్పందంపై సంతకం చేయడానికి అర్హుడనని లేదా సంరక్షకుల సమ్మతిని పొందుతున్నానని ప్రకటిస్తున్నాను.",
+      "నాకు కలిగే నష్టాలకు జాయ్ వాటర్ స్పోర్ట్స్ బాధ్యత వహించరని నేను అంగీకరిస్తున్నాను.",
+      "నా సొంత నిర్ణయంతో సంతకం చేస్తున్నానని అర్థం చేసుకున్నాను.",
+      "అన్ని ప్రమాదాలను స్వీకరించడానికి నేను సమ్మతిస్తున్నాను.",
+      "నష్టపరిహారం: నా నిర్లక్ష్యం వలన కలిగే నష్టాల నుండి కంపెనీని రక్షించడానికి అంగీకరిస్తున్నాను."
     ],
-    guestDetailsHeader: "అతిథి వివరాలు",
-    totalGuestsLabel: "మొత్తం అతిథుల సంఖ్య (గరిష్టంగా 20)",
-    guestListHeader: "అతిథుల పేరు & వయస్సు జాబితా",
+    guestDetailsHeader: "పాల్గొనేవారి వివరాలు",
+    totalGuestsLabel: "మొత్తం అతిథుల సంఖ్య",
+    totalGuestsSubtitle: "ఈ యాత్రలో పాల్గొనే అతిథుల సంఖ్యను ఎంచుకోండి.",
+    guestListHeader: "పాల్గొనేవారి పేరు & వయస్సు జాబితా",
     guestNumberLabel: (n) => `అతిథి ${n}`,
     ageLabel: "వయస్సు",
     agePlaceholder: "వయస్సు",
-    guestNameLabel: "అతిథి పేరు",
-    guestNamePlaceholder: "అతిథి పూర్తి పేరు నమోదు చేయండి",
+    guestNameLabel: "పూర్తి పేరు",
+    guestNamePlaceholder: "పూర్తి పేరు నమోదు చేయండి",
+    primaryContactHeader: "ప్రైమరీ కాంటాక్ట్ వివరాలు",
+    primaryContactSubtitle: "ఈ బుకింగ్‌కు సంబంధించి వీరే ప్రధాన కాంటాక్ట్ అవుతారు.",
     commAddressLabel: "చిరునామా",
-    commAddressPlaceholder: "పూర్తి చిరునామా నమోదు చేయండి",
-    phoneLabel: "టెలిఫోన్ / మొబైల్ నంబర్",
+    commAddressPlaceholder: "చిరునామా నమోదు చేయండి",
+    phoneLabel: "మొబైల్ నంబర్",
     phonePlaceholder: "+91 98765 43210",
     emailLabel: "ఈమెయిల్ చిరునామా",
     emailPlaceholder: "guest@example.com",
+    activitiesHeader: "పాల్గొనే వాటర్ స్పోర్ట్స్ రకాలు",
+    applyToAllGuestsLabel: "ఎంచుకున్న క్రీడలను అందరు అతిథులకు వర్తింపజేయండి",
+    customizePerGuestLabel: "ఒక్కొక్కరికి వేర్వేరుగా ఎంచుకోండి",
+    finalDeclarationHeader: "అంతిమ డిక్లరేషన్",
+    finalDeclarationText: "పైన తెలిపిన సమాచారం ఖచ్చితమైనదని మరియు నిబంధనలను చదివి అంగీకరిస్తున్నానని ధృవీకరిస్తున్నాను.",
+    finalDeclarationCheckboxLabel: "నేను పై డిక్లరేషన్‌ను అంగీకరిస్తున్నాను.",
     guestSigLabel: "అతిథి సంతకం",
+    signForGroupLabel: "ప్రైమరీ అతిథి గ్రూప్ తరఫున సంతకం చేస్తారు",
+    individualSignaturesLabel: "ప్రతి ఒక్కరూ విడిగా సంతకం చేయండి",
     dateLabel: "తేదీ",
-    guardianHeader: "సంరక్షకుని వివరాలు",
-    guardianNote: "16 సంవత్సరాలు లేదా అంతకంటే తక్కువ వయస్సు ఉన్న పిల్లల విషయంలో, వారి సంరక్షకులు బాధ్యత విముక్తి ఒప్పందాన్ని సమర్పించాలి-",
-    guardianNameLabel: "సంరక్షకుని పేరు",
-    guardianNamePlaceholder: "సంరక్షకుని పూర్తి పేరు (వర్తిస్తే)",
-    guardianAddressPlaceholder: "సంరక్షకుని చిరునామా",
-    guardianPhonePlaceholder: "సంరక్షకుని ఫోన్ నంబర్",
+    summaryHeader: "డిక్లరేషన్ సారాంశం",
+    guardianHeader: "సంరక్షకుని వివరాలు (18 ఏళ్ల లోపు వారికి)",
+    guardianNote: "18 ఏళ్ల లోపు పిల్లలకు సంరక్షకుని వివరాలు అవసరం-",
+    guardianNameLabel: "సంరక్షకుని పూర్తి పేరు",
+    guardianNamePlaceholder: "సంరక్షకుని పేరు",
+    guardianAddressPlaceholder: "చిరునామా",
+    guardianPhonePlaceholder: "ఫోన్ నంబర్",
     guardianSigLabel: "సంరక్షకుని సంతకం",
     dateOfSailingLabel: "ప్రయాణ తేదీ :",
     invoiceNoLabel: "ఇన్‌వాయిస్ నంబర్ :",
@@ -312,9 +385,11 @@ const translations: Record<LanguageKey, Translations> = {
     trip1Placeholder: "ఉదా: 10:00 AM",
     trip2Placeholder: "ఉదా: 11:30 AM",
     boatLabel: "బోట్ :",
-    submitBtn: "సమర్పించండి",
+    submitBtn: "డిక్లరేషన్‌ను సమర్పించండి",
     submittingBtn: "సమర్పిస్తోంది...",
-    footerNotice: "సమర్పించు క్లిక్ చేయడం ద్వారా, అందించిన సమాచారం అంతా ఖచ్చితమైనదని మరియు చట్టబద్ధంగా కట్టుబడి ఉంటుందని మీరు అంగীకరిస్తున్నారు."
+    footerNotice: "సమర్పించు క్లిక్ చేయడం ద్వారా సమాచారం చట్టబద్ధమైనదని అంగీకరిస్తున్నారు.",
+    sendWhatsappBtn: "WhatsApp ద్వారా కన్ఫర్మేషన్ పంపండి",
+    startNewBtn: "కొత్త డిక్లరేషన్ ఫారమ్"
   },
   hi: {
     title: "जॉय वाटर स्पोर्ट्स",
@@ -324,42 +399,55 @@ const translations: Record<LanguageKey, Translations> = {
     printForm: "फॉर्म प्रिंट करें",
     backToHome: "होम पर वापस जाएं",
     submittedSuccessTitle: "देयता छूट और घोषणा सफलतापूर्वक जमा की गई!",
-    submittedSuccessMsg: (name) => `धन्यवाद, ${name}। आपका घोषणा पत्र दर्ज कर लिया गया है और आपके बुकिंग पास से जोड़ दिया गया है।`,
+    submittedSuccessMsg: (name) => `धन्यवाद, ${name}। आपका घोषणा पत्र सफलतापूर्वक दर्ज कर लिया गया है।`,
     printCompleted: "पूर्ण प्रति प्रिंट करें",
     returnHome: "मुख्य पृष्ठ पर लौटें",
-    errName: "कृपया अतिथि का नाम दर्ज करें।",
-    errPhone: "कृपया टेलीफोन / मोबाइल नंबर दर्ज करें।",
+    errName: "कृपया गेस्ट 1 का पूरा नाम दर्ज करें।",
+    errPhone: "कृपया प्राथमिक मोबाइल नंबर दर्ज करें।",
     errSig: "कृपया जमा करने से पहले हस्ताक्षर करें।",
+    errConfirmation: "कृपया घोषणा स्वीकार करने वाले चेकबॉक्स पर टिक करें।",
     terms: [
       "मैं प्रमाणित करता हूं कि मुझे इस गतिविधि में शामिल जोखिमों के बारे में पूरी जानकारी है और मुझे सुरक्षा प्रक्रियाओं के बारे में बताया गया है।",
-      "मुझे क्या करना है और क्या नहीं, चिकित्सा प्रतिबंधों और स्थानीय सरकारी नियमों के बारे में जानकारी है।",
-      "मैं घोषित करता हूं कि मैं गतिविधि करने के लिए शारीरिक रूप से स्वस्थ हूं और किसी भी दिल की बीमारी, रक्तचाप या सांस की समस्या से पीड़ित नहीं हूं।",
-      "मैं आगे घोषित करता हूं कि मैं इस समझौते पर हस्ताक्षर करने के लिए वयस्क और सक्षम हूं या मैंने अभिभावक की सहमति प्राप्त कर ली है।",
-      "मैं समझता हूं और सहमत हूं कि मुझे होने वाली किसी भी चोट, मृत्यु या अन्य नुकसान के लिए जॉय वाटर स्पोर्ट्स या उसके कर्मचारी जिम्मेदार नहीं होंगे।",
-      "मैं समझता हूं कि यहां दी गई शर्तें अनुबंधात्मक हैं और मैं अपनी स्वेच्छा से इस समझौते पर हस्ताक्षर कर रहा हूं।",
-      "मैं इस गतिविधि में मौजूद सभी जोखिमों को स्वीकार करने के लिए स्पष्ट रूप से सहमत हूं। मेरी भागीदारी पूरी तरह से स्वैच्छिक है।",
-      "क्षतिपूर्ति: मैं अपनी लापरवाही या गलत जानकारी के कारण होने वाले किसी भी नुकसान से कंपनी की रक्षा करने और क्षतिपूर्ति करने के लिए सहमत हूं।"
+      "मुझे क्या करना है और क्या नहीं, चिकित्सा प्रतिबंधों और स्थानीय नियमों के बारे में जानकारी है।",
+      "मैं घोषित करता हूं कि मैं गतिविधि करने के लिए शारीरिक रूप से स्वस्थ हूं और किसी गंभीर बीमारी से पीड़ित नहीं हूं।",
+      "मैं आगे घोषित करता हूं कि मैं समझौते पर हस्ताक्षर करने के लिए वयस्क हूं या अभिभावक की सहमति प्राप्त है।",
+      "मैं समझता हूं कि मुझे होने वाले किसी नुकसान के लिए जॉय वाटर स्पोर्ट्स जिम्मेदार नहीं होगा।",
+      "मैं अपनी स्वेच्छा से इस समझौते पर हस्ताक्षर कर रहा हूं।",
+      "मैं इस गतिविधि में मौजूद सभी जोखिमों को स्वीकार करने के लिए सहमत हूं।",
+      "क्षतिपूर्ति: मैं अपनी लापरवाही से होने वाले नुकसान से कंपनी की रक्षा करने के लिए सहमत हूं।"
     ],
-    guestDetailsHeader: "अतिथि विवरण",
-    totalGuestsLabel: "कुल मेहमानों की संख्या (अधिकतम 20)",
-    guestListHeader: "मेहमानों का नाम और आयु सूची",
-    guestNumberLabel: (n) => `मेहमान ${n}`,
+    guestDetailsHeader: "प्रतिभागियों का विवरण",
+    totalGuestsLabel: "कुल मेहमानों की संख्या",
+    totalGuestsSubtitle: "इस ट्रिप में भाग लेने वाले मेहमानों की संख्या चुनें।",
+    guestListHeader: "प्रतिभागियों का नाम और आयु सूची",
+    guestNumberLabel: (n) => `गेस्ट ${n}`,
     ageLabel: "आयु",
     agePlaceholder: "आयु",
-    guestNameLabel: "अतिथि का नाम",
-    guestNamePlaceholder: "अतिथि का पूरा नाम दर्ज करें",
-    commAddressLabel: "संचार पता",
-    commAddressPlaceholder: "पूरा पता दर्ज करें",
-    phoneLabel: "टेलीफोन / मोबाइल नंबर",
+    guestNameLabel: "पूरा नाम",
+    guestNamePlaceholder: "प्रतिभागी का पूरा नाम दर्ज करें",
+    primaryContactHeader: "प्राथमिक संपर्क विवरण",
+    primaryContactSubtitle: "यह व्यक्ति इस बुकिंग का मुख्य संपर्क होगा।",
+    commAddressLabel: "पूरा पता",
+    commAddressPlaceholder: "संचार पता दर्ज करें",
+    phoneLabel: "मोबाइल नंबर",
     phonePlaceholder: "+91 98765 43210",
     emailLabel: "ईमेल पता",
     emailPlaceholder: "guest@example.com",
+    activitiesHeader: "भाग लेने वाली वाटर स्पोर्ट्स गतिविधियां",
+    applyToAllGuestsLabel: "चुनी गई गतिविधियां सभी मेहमानों पर लागू करें",
+    customizePerGuestLabel: "प्रत्येक प्रतिभागी के लिए अलग से चुनें",
+    finalDeclarationHeader: "अंतिम घोषणा",
+    finalDeclarationText: "मैं पुष्टि करता हूं कि ऊपर दी गई जानकारी सटीक है और मैंने सुरक्षा एवं देयता शर्तों को पढ़कर स्वीकार किया है।",
+    finalDeclarationCheckboxLabel: "मैं उपरोक्त घोषणा की पुष्टि और सहमति देता हूं।",
     guestSigLabel: "अतिथि के हस्ताक्षर",
+    signForGroupLabel: "प्राथमिक अतिथि पूरे समूह की ओर से हस्ताक्षर करता है",
+    individualSignaturesLabel: "सभी प्रतिभागी अलग-अलग हस्ताक्षर करें",
     dateLabel: "दिनांक",
-    guardianHeader: "अभिभावक विवरण",
-    guardianNote: "16 वर्ष या उससे कम उम्र के बच्चों के मामले में, अभिभावक को देयता छूट समझौता जमा करना होगा-",
-    guardianNameLabel: "अभिभावक का नाम",
-    guardianNamePlaceholder: "अभिभावक का पूरा नाम (यदि लागू हो)",
+    summaryHeader: "घोषणा का सारांश",
+    guardianHeader: "अभिभावक विवरण (18 वर्ष से कम आयु के लिए)",
+    guardianNote: "18 वर्ष से कम उम्र के नाबालिगों के लिए अभिभावक का विवरण आवश्यक है-",
+    guardianNameLabel: "अभिभावक का पूरा नाम",
+    guardianNamePlaceholder: "अभिभावक का नाम",
     guardianAddressPlaceholder: "अभिभावक का पता",
     guardianPhonePlaceholder: "अभिभावक का फोन नंबर",
     guardianSigLabel: "अभिभावक के हस्ताक्षर",
@@ -370,9 +458,11 @@ const translations: Record<LanguageKey, Translations> = {
     trip1Placeholder: "उदा: 10:00 AM",
     trip2Placeholder: "उदा: 11:30 AM",
     boatLabel: "नाव :",
-    submitBtn: "जमा करें",
+    submitBtn: "घोषणा पत्र जमा करें",
     submittingBtn: "जमा किया जा रहा है...",
-    footerNotice: "जमा करें पर क्लिक करके, आप स्वीकार करते हैं कि प्रदान की गई सभी जानकारी सटीक और कानूनी रूप से बाध्यकारी है।"
+    footerNotice: "जमा करें पर क्लिक करके, आप स्वीकार करते हैं कि सभी जानकारी कानूनी रूप से बाध्यकारी है।",
+    sendWhatsappBtn: "WhatsApp के जरिए पुष्टि भेजें",
+    startNewBtn: "नया घोषणा पत्र शुरू करें"
   },
   bn: {
     title: "জয় ওয়াটার স্পোর্টস",
@@ -382,43 +472,56 @@ const translations: Record<LanguageKey, Translations> = {
     printForm: "ফর্ম প্রিন্ট করুন",
     backToHome: "হোমে ফিরে যান",
     submittedSuccessTitle: "দায়মুক্তি ফর্ম সফলভাবে জমা দেওয়া হয়েছে!",
-    submittedSuccessMsg: (name) => `ধন্যবাদ, ${name}। আপনার দায়মুক্তি চুক্তিটি রেকর্ড করা হয়েছে এবং আপনার বুকিং পাসের সাথে যুক্ত করা হয়েছে।`,
+    submittedSuccessMsg: (name) => `ধন্যবাদ, ${name}। আপনার দায়মুক্তি চুক্তি রেকর্ড করা হয়েছে।`,
     printCompleted: "সম্পূর্ণ কপি প্রিন্ট করুন",
     returnHome: "হোম পেজে ফিরে যান",
-    errName: "অনুগ্রহ করে অতিথির নাম লিখুন।",
-    errPhone: "অনুগ্রহ করে টেলিফোন / মোবাইল নম্বর লিখুন।",
-    errSig: "জমা দেওয়ার আগে অনুগ্রহ করে স্বাক্ষর করুন।",
+    errName: "অনুগ্রহ করে অতিথি ১-এর পুরো নাম লিখুন।",
+    errPhone: "অনুগ্রহ করে প্রাইমারি মোবাইল নম্বর লিখুন।",
+    errSig: "জমা দেওয়ার আগে স্বাক্ষর করুন।",
+    errConfirmation: "অনুগ্রহ করে ঘোষণা নিশ্চিতকরণ বক্সে টিক দিন।",
     terms: [
-      "আমি প্রত্যয়ন করছি যে আমি এই কার্যকলাপে জড়িত ঝুঁকি সম্পর্কে পুরোপুরি সচেতন এবং আমাকে সুরক্ষা পদ্ধতি সম্পর্কে অবহিত করা হয়েছে।",
-      "আমি কি করা উচিত এবং কি করা উচিত নয়, চিকিৎসা সংক্রান্ত বিধিনিষেধ এবং স্থানীয় সরকারি নিয়মাবলী সম্পর্কে অবগত।",
-      "আমি উল্লেখ করছি যে আমি শারীরিকভাবে এই কার্যকলাপে অংশ নিতে সক্ষম এবং হৃদরোগ, রক্তচাপ, হাঁপানি বা অন্য কোনো মারাত্মক সমস্যায় ভুগছি না।",
-      "আমি আরও উল্লেখ করছি যে আমি আইনিভাবে প্রাপ্তবয়স্ক এবং এই চুক্তিপত্রে স্বাক্ষর করতে সক্ষম অথবা আমি আমার অভিভাবকের লিখিত সম্মতি পেয়েছি।",
-      "আমি বুঝতে পারছি এবং সম্মত হচ্ছি যে জয় ওয়াটার স্পোর্টস বা এর কর্মচারী/মালিকদের আমার কোনো আঘাত, মৃত্যু বা অন্য ক্ষতির জন্য দায়ী করা যাবে না।",
-      "আমি বুঝতে পারছি যে এখানে উল্লেখিত শর্তাবলী চুক্তিভিত্তিক এবং আমি স্বেচ্ছায় আমার আইনি অধিকার ত্যাগ করে এই চুক্তিতে স্বাক্ষর করছি।",
-      "আমি এই ক্রিয়াকলাপে বিদ্যমান সমস্ত ঝুঁকি গ্রহণ করতে স্পষ্টভাবে সম্মত। আমার অংশগ্রহণ সম্পূর্ণরূপে ঐচ্ছিক।",
-      "ক্ষতিপূরণ: আমি (বা আমার প্রতিনিধি) আমার অবহেলা বা ভুল তথ্যের কারণে সৃষ্ট কোনো খরচ বা ক্ষতির বিরুদ্ধে কোম্পানিকে রক্ষা ও ক্ষতিপূরণ দিতে সম্মত।"
+      "আমি প্রত্যয়ন করছি যে আমি ঝুঁকিসমূহ সম্পর্কে সচেতন এবং আমাকে সুরক্ষা পদ্ধতি সম্পর্কে অবহিত করা হয়েছে।",
+      "আমি কি করা উচিত এবং কি নয়, চিকিৎসা সংক্রান্ত বিধিনিষেধ সম্পর্কে অবগত।",
+      "আমি উল্লেখ করছি যে আমি শারীরিকভাবে সক্ষম এবং কোনো মারাত্মক রোগে ভুগছি না।",
+      "আমি প্রাপ্তবয়স্ক অথবা অভিভাবকের লিখিত সম্মতি পেয়েছি।",
+      "জয় ওয়াটার স্পোর্টস আমার কোনো ক্ষতির জন্য দায়ী থাকবে না।",
+      "আমি স্বেচ্ছায় আমার আইনি অধিকার ত্যাগ করে চুক্তিতে স্বাক্ষর করছি।",
+      "আমি সমস্ত ঝুঁকি গ্রহণ করতে সম্মত।",
+      "ক্ষতিপূরণ: আমার অবহেলার কারণে সৃষ্ট ক্ষতির জন্য ক্ষতিপূরণ দিতে সম্মত।"
     ],
-    guestDetailsHeader: "অতিথির বিবরণ",
-    totalGuestsLabel: "মোট অতিথির সংখ্যা (সর্বোচ্চ ২০)",
-    guestListHeader: "অতিথিদের নাম ও বয়সের তালিকা",
+    guestDetailsHeader: "অংশগ্রহণকারীদের বিবরণ",
+    totalGuestsLabel: "মোট অতিথির সংখ্যা",
+    totalGuestsSubtitle: "এই ট্রিপে অংশগ্রহণকারী অতিথির সংখ্যা নির্বাচন করুন।",
+    guestListHeader: "অংশগ্রহণকারীদের নাম ও বয়সের তালিকা",
     guestNumberLabel: (n) => `অতিথি ${n}`,
     ageLabel: "বয়স",
     agePlaceholder: "বয়স",
-    guestNameLabel: "অতিথির নাম",
-    guestNamePlaceholder: "অতিথির পুরো নাম লিখুন",
-    commAddressLabel: "যোগাযোগের ঠিকানা",
-    commAddressPlaceholder: "সম্পূর্ণ যোগাযোগের ঠিকানা লিখুন",
-    phoneLabel: "টেলিফোন / মোবাইল নম্বর",
+    guestNameLabel: "পুরো নাম",
+    guestNamePlaceholder: "অংশগ্রহণকারীর পুরো নাম লিখুন",
+    primaryContactHeader: "প্রাইমারি যোগাযোগের বিবরণ",
+    primaryContactSubtitle: "এই ব্যক্তি এই বুকিংয়ের মূল পরিচিতি হবেন।",
+    commAddressLabel: "সম্পূর্ণ ঠিকানা",
+    commAddressPlaceholder: "যোগাযোগের ঠিকানা লিখুন",
+    phoneLabel: "মোবাইল নম্বর",
     phonePlaceholder: "+91 98765 43210",
     emailLabel: "ইমেল ঠিকানা",
     emailPlaceholder: "guest@example.com",
+    activitiesHeader: "অংশগ্রহণকারী ওয়াটার স্পোর্টস রাইডসমূহ",
+    applyToAllGuestsLabel: "নির্বাচিত রাইডসমূহ সকল অতিথির জন্য প্রযোজ্য করুন",
+    customizePerGuestLabel: "প্রত্যেক অতিথির জন্য আলাদা নির্বাচন করুন",
+    finalDeclarationHeader: "চূড়ান্ত ঘোষণা",
+    finalDeclarationText: "আমি নিশ্চিত করছি যে প্রদান করা তথ্য সঠিক এবং শর্তাবলী পড়ে সম্মত হয়েছি।",
+    finalDeclarationCheckboxLabel: "আমি উপরোক্ত ঘোষণা নিশ্চিত ও সম্মত হচ্ছি।",
     guestSigLabel: "অতিথির স্বাক্ষর",
+    signForGroupLabel: "মূল অতিথি পুরো গ্রুপের পক্ষে স্বাক্ষর করছেন",
+    individualSignaturesLabel: "প্রত্যেকে আলাদাভাবে স্বাক্ষর করুন",
     dateLabel: "তারিখ",
-    guardianHeader: "অভিভাবকের বিবরণ",
-    guardianNote: "১৬ বছর বা তার কম বয়সী শিশুদের ক্ষেত্রে, শিশুদের অভিভাবককে দায়মুক্তি চুক্তিপত্র জমা দিতে হবে-",
-    guardianNameLabel: "অভিভাবকের নাম",
-    guardianNamePlaceholder: "অভিভাবকের পুরো নাম (প্রযোজ্য হলে)",
-    guardianAddressPlaceholder: "অভিভাবকের যোগাযোগের ঠিকানা",
+    summaryHeader: "ঘোষণার সারসংক্ষেপ",
+    guardianHeader: "অভিভাবকের বিবরণ (১৮ বছরের কম বয়সীদের জন্য)",
+    guardianNote: "১৮ বছরের কম বয়সী নাবালকদের জন্য অভিভাবকের বিবরণ প্রয়োজন-",
+    guardianNameLabel: "অভিভাবকের পুরো নাম",
+    guardianNamePlaceholder: "অভিভাবকের নাম",
+    guardianAddressPlaceholder: "অভিভাবকের ঠিকানা",
     guardianPhonePlaceholder: "অভিভাবকের ফোন নম্বর",
     guardianSigLabel: "অভিভাবকের স্বাক্ষর",
     dateOfSailingLabel: "যাত্রার তারিখ :",
@@ -428,9 +531,11 @@ const translations: Record<LanguageKey, Translations> = {
     trip1Placeholder: "যেমন: 10:00 AM",
     trip2Placeholder: "যেমন: 11:30 AM",
     boatLabel: "বোট :",
-    submitBtn: "জমা দিন",
+    submitBtn: "ঘোষণা জমা দিন",
     submittingBtn: "জমা হচ্ছে...",
-    footerNotice: "জমা দিন বোতামে ক্লিক করে, আপনি স্বীকার করছেন যে প্রদান করা সমস্ত তথ্য সঠিক এবং আইনগতভাবে বাধ্যবাধকতাযুক্ত।"
+    footerNotice: "জমা দিন ক্লিক করে আপনি আইনি বাধ্যবাধকতা স্বীকার করছেন।",
+    sendWhatsappBtn: "WhatsApp-এ নিশ্চিতকরণ পাঠান",
+    startNewBtn: "নতুন ঘোষণা ফর্ম শুরু করুন"
   }
 };
 
@@ -446,21 +551,79 @@ export default function DeclarationForm() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Dynamic guest list state (Max 20 guests)
-  const initialGuests = Math.min(20, Math.max(1, parseInt(searchParams.get('guests') || '1')));
-  const [guestCount, setGuestCount] = useState<number>(initialGuests);
-  const [guestList, setGuestList] = useState<{ name: string; age: string }[]>(() => {
-    const list: { name: string; age: string }[] = [];
-    for (let i = 0; i < initialGuests; i++) {
+  // Suffix for Declaration ID: JWS + DDMMYY + Counter Ticket No.
+  const generateDefaultSuffix = () => {
+    const passedSuffix = searchParams.get('idSuffix') || searchParams.get('seq');
+    return passedSuffix || '';
+  };
+
+  // Helper for Declaration ID Prefix (JWS + DDMMYY)
+  const getIdPrefix = (dateStr: string) => {
+    if (!dateStr) {
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, '0');
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const yy = String(today.getFullYear()).slice(-2);
+      return `JWS${dd}${mm}${yy}`;
+    }
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const yyyy = parts[0];
+      const mm = parts[1];
+      const dd = parts[2];
+      const yy = yyyy.slice(-2);
+      return `JWS${dd}${mm}${yy}`;
+    }
+    return 'JWS080826';
+  };
+
+  // 1. Dynamic Guest Count State (1 to 20 Guests)
+  const initialGuestCount = Math.min(20, Math.max(1, parseInt(searchParams.get('guests') || '1')));
+  const [guestCount, setGuestCount] = useState<number>(initialGuestCount);
+
+  // 2. Participant details list ({ name, age, gender })
+  const [guestList, setGuestList] = useState<{ name: string; age: string; gender: string }[]>(() => {
+    const list: { name: string; age: string; gender: string }[] = [];
+    for (let i = 0; i < initialGuestCount; i++) {
       list.push({
         name: i === 0 ? (searchParams.get('name') || '') : '',
-        age: ''
+        age: '',
+        gender: ''
       });
     }
     return list;
   });
 
-  // Activities Selection State
+  // 3. Primary Contact / Communication Details
+  const [formData, setFormData] = useState({
+    idSuffix: generateDefaultSuffix(),
+    guestName: searchParams.get('name') || '',
+    communicationAddress: searchParams.get('address') || '',
+    phone: searchParams.get('phone') || '',
+    email: searchParams.get('email') || '',
+    signature: '',
+    agreementDate: searchParams.get('date') || new Date().toISOString().split('T')[0],
+    declarationTime: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit' }),
+
+    // Guardian details for minors
+    hasMinor: false,
+    guardianName: '',
+    guardianAddress: '',
+    guardianPhone: '',
+    guardianEmail: '',
+    guardianSignature: '',
+    guardianAgreementDate: searchParams.get('date') || new Date().toISOString().split('T')[0],
+
+    // Confirmation & Metadata
+    finalConfirmationAgreed: false,
+    invoiceNo: bookingIdParam || '',
+    boardingPassNo: bookingIdParam ? `BP-${bookingIdParam}` : '',
+    trip1Time: searchParams.get('time') || '',
+    dateOfSailing: searchParams.get('date') || new Date().toISOString().split('T')[0]
+  });
+
+  // 4. Activities State
+  const [applyToAllGuests, setApplyToAllGuests] = useState(true);
   const [selectedActivities, setSelectedActivities] = useState<string[]>(() => {
     const actParam = searchParams.get('activities') || searchParams.get('activity');
     if (actParam) {
@@ -470,65 +633,106 @@ export default function DeclarationForm() {
     return ['Parasailing'];
   });
 
-  const handleActivityToggle = (activityName: string) => {
-    setSelectedActivities(prev => {
-      if (prev.includes(activityName)) {
-        if (prev.length === 1) return prev; // keep at least 1 activity selected
-        return prev.filter(a => a !== activityName);
-      } else {
-        return [...prev, activityName];
-      }
-    });
-  };
-
-  // Helper for 24-hour format current IST time
-  const get24HourISTTime = () => {
-    return new Date().toLocaleTimeString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Form State matching original waiver layout
-  const [formData, setFormData] = useState({
-    guestName: searchParams.get('name') || '',
-    communicationAddress: searchParams.get('address') || '',
-    phone: searchParams.get('phone') || '',
-    email: searchParams.get('email') || '',
-    signature: '',
-    agreementDate: searchParams.get('date') || new Date().toISOString().split('T')[0],
-    declarationTime: searchParams.get('declarationTime') || searchParams.get('time') || get24HourISTTime(),
-
-    // Guardian details
-    hasGuardian: false,
-    guardianName: '',
-    guardianAddress: '',
-    guardianPhone: '',
-    guardianEmail: '',
-    guardianSignature: '',
-    guardianAgreementDate: searchParams.get('date') || new Date().toISOString().split('T')[0],
-
-    // Bottom grid details
-    dateOfSailing: searchParams.get('date') || new Date().toISOString().split('T')[0],
-    invoiceNo: bookingIdParam || '',
-    boardingPassNo: bookingIdParam ? `BP-${bookingIdParam}` : '',
-    trip1Time: searchParams.get('time') || '',
-    trip2Time: '',
-    trip3Time: '',
-    trip4Time: '',
-    boatG1_1: false,
-    boatG1_2: false,
-    boatG1_3: false,
-    boatBlank: false
+  // Per-guest activity map (guest index -> activities)
+  const [perGuestActivities, setPerGuestActivities] = useState<Record<number, string[]>>({
+    0: ['Parasailing']
   });
 
-  // Online Booking Authentication Lookup state
+  // 5. Signature Mode & Per-Guest Signatures
+  const [isGroupSignature, setIsGroupSignature] = useState(true);
+  const [perGuestSignatures, setPerGuestSignatures] = useState<Record<number, string>>({});
+  const [activeSigningGuest, setActiveSigningGuest] = useState<number>(0);
+
+  // Check if any guest is under 18
+  useEffect(() => {
+    const hasAnyMinor = guestList.some(g => {
+      const parsedAge = parseInt(g.age, 10);
+      return !isNaN(parsedAge) && parsedAge < 18;
+    });
+    setFormData(prev => ({ ...prev, hasMinor: hasAnyMinor }));
+  }, [guestList]);
+
+  // Sync Guest 1 name with Primary Contact guestName if not explicitly customized
+  const handleGuestItemChange = (index: number, field: 'name' | 'age' | 'gender', value: string) => {
+    setGuestList(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+
+    if (index === 0 && field === 'name') {
+      setFormData(prev => ({ ...prev, guestName: value }));
+    }
+  };
+
+  // Dynamic guest count handler (1-20)
+  const handleGuestCountChange = (count: number) => {
+    const newCount = Math.min(20, Math.max(1, count));
+    setGuestCount(newCount);
+
+    setGuestList(prev => {
+      const updated = [...prev];
+      if (updated.length < newCount) {
+        for (let i = updated.length; i < newCount; i++) {
+          updated.push({ name: '', age: '', gender: '' });
+        }
+      } else if (updated.length > newCount) {
+        return updated.slice(0, newCount);
+      }
+      return updated;
+    });
+
+    // Initialize per-guest activities
+    setPerGuestActivities(prev => {
+      const updated = { ...prev };
+      for (let i = 0; i < newCount; i++) {
+        if (!updated[i]) updated[i] = [...selectedActivities];
+      }
+      return updated;
+    });
+  };
+
+  const handleActivityToggleGroup = (actName: string) => {
+    setSelectedActivities(prev => {
+      let updated: string[];
+      if (prev.includes(actName)) {
+        if (prev.length === 1) return prev; // keep at least 1
+        updated = prev.filter(a => a !== actName);
+      } else {
+        updated = [...prev, actName];
+      }
+
+      // Sync to all guests
+      setPerGuestActivities(guestMap => {
+        const nextMap: Record<number, string[]> = {};
+        for (let i = 0; i < guestCount; i++) {
+          nextMap[i] = [...updated];
+        }
+        return nextMap;
+      });
+
+      return updated;
+    });
+  };
+
+  const handleActivityTogglePerGuest = (guestIdx: number, actName: string) => {
+    setPerGuestActivities(prev => {
+      const current = prev[guestIdx] || [];
+      let updated: string[];
+      if (current.includes(actName)) {
+        if (current.length === 1) return prev;
+        updated = current.filter(a => a !== actName);
+      } else {
+        updated = [...current, actName];
+      }
+      return { ...prev, [guestIdx]: updated };
+    });
+  };
+
+  // Lookup Online Booking helper for receptionists
   const [lookupInput, setLookupInput] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState('');
-  const [verifiedBooking, setVerifiedBooking] = useState<any>(null);
 
   const handleLookupBooking = async () => {
     if (!lookupInput.trim()) {
@@ -548,7 +752,6 @@ export default function DeclarationForm() {
         throw new Error(data.error || 'No matching online booking found.');
       }
       const b = data.bookings[0];
-      setVerifiedBooking(b);
       const fetchedName = `${b.firstName || ''} ${b.lastName || ''}`.trim();
       setFormData(prev => ({
         ...prev,
@@ -575,34 +778,6 @@ export default function DeclarationForm() {
       setLookupError(formatSafeErrorMessage(err));
     } finally {
       setLookupLoading(false);
-    }
-  };
-
-  const handleGuestCountChange = (count: number) => {
-    const newCount = Math.min(20, Math.max(1, count));
-    setGuestCount(newCount);
-    setGuestList(prev => {
-      const list = [...prev];
-      if (list.length < newCount) {
-        for (let i = list.length; i < newCount; i++) {
-          list.push({ name: '', age: '' });
-        }
-      } else if (list.length > newCount) {
-        return list.slice(0, newCount);
-      }
-      return list;
-    });
-  };
-
-  const handleGuestItemChange = (index: number, field: 'name' | 'age', value: string) => {
-    setGuestList(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-
-    if (index === 0 && field === 'name') {
-      setFormData(prev => ({ ...prev, guestName: value }));
     }
   };
 
@@ -650,28 +825,58 @@ export default function DeclarationForm() {
       if (name === 'guestName') {
         setGuestList(prev => {
           const list = [...prev];
-          if (list[0]) {
-            list[0] = { ...list[0], name: value };
-          }
+          if (list[0]) list[0] = { ...list[0], name: value };
           return list;
         });
       }
     }
   };
 
+  const scrollToFirstError = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = el.querySelector('input, select, textarea') as HTMLElement;
+      if (input) input.focus();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.guestName.trim()) {
-      setErrorMessage(t.errName);
+    // 0. Counter ticket number / ID Suffix check
+    if (!formData.idSuffix || formData.idSuffix.trim().length < 2) {
+      setErrorMessage("Please enter the Counter Ticket Number (at least 2 to 4 digits) for Declaration ID.");
+      scrollToFirstError('step-declaration-id');
       return;
     }
+
+    // 1. Participant name check
+    if (!guestList[0]?.name.trim()) {
+      setErrorMessage(t.errName);
+      scrollToFirstError('field-guest-name-0');
+      return;
+    }
+
+    // 2. Primary Contact phone check
     if (!formData.phone.trim()) {
       setErrorMessage(t.errPhone);
+      scrollToFirstError('field-phone');
       return;
     }
-    if (!formData.signature) {
+
+    // 3. Final declaration checkbox confirmation
+    if (!formData.finalConfirmationAgreed) {
+      setErrorMessage(t.errConfirmation);
+      scrollToFirstError('field-confirmation');
+      return;
+    }
+
+    // 4. Primary signature check
+    const primarySig = isGroupSignature ? formData.signature : (perGuestSignatures[0] || formData.signature);
+    if (!primarySig) {
       setErrorMessage(t.errSig);
+      scrollToFirstError('field-signature');
       return;
     }
 
@@ -679,27 +884,39 @@ export default function DeclarationForm() {
     setErrorMessage('');
 
     try {
-      const activitiesStr = selectedActivities.join(', ');
-      const directDeclarationScriptUrl = 'https://script.google.com/macros/s/AKfycbwltnDwvfSKPuHdJqmXtXBfgU2xRZJ0SOSadQbtIeIxoX2K1foJJNCOBuDMGspZEt5s6A/exec';
-
-      const current24hTime = formData.declarationTime || get24HourISTTime();
+      const idPrefix = getIdPrefix(formData.agreementDate);
+      const fullDeclarationId = `${idPrefix}${formData.idSuffix.trim()}`;
+      const activitiesStr = applyToAllGuests
+        ? selectedActivities.join(', ')
+        : Object.entries(perGuestActivities)
+            .map(([idx, acts]) => `Guest ${Number(idx) + 1}: ${(acts as string[]).join(', ')}`)
+            .join(' | ');
 
       const payload = {
+        declarationId: fullDeclarationId,
+        idNumber: fullDeclarationId,
+        idPrefix: idPrefix,
+        idSuffix: formData.idSuffix.trim(),
         bookingId: formData.invoiceNo || bookingIdParam || `WALKIN-${Date.now()}`,
-        guestName: formData.guestName,
+        guestName: formData.guestName || guestList[0]?.name,
         totalGuests: guestCount,
         guestList: guestList,
         activities: selectedActivities,
         selectedActivities: activitiesStr,
+        perGuestActivities: perGuestActivities,
         communicationAddress: formData.communicationAddress || 'Onsite Guest',
         phone: formData.phone,
         email: formData.email,
-        signature: formData.signature,
+        signature: primarySig,
+        finalConfirmationAgreed: formData.finalConfirmationAgreed,
+        declarationAgreed: formData.finalConfirmationAgreed,
+        finalDeclarationChecked: formData.finalConfirmationAgreed ? 'YES (Agreed)' : 'NO',
+        perGuestSignatures: isGroupSignature ? { 0: primarySig } : perGuestSignatures,
         agreementDate: formData.agreementDate,
         declarationDate: formData.agreementDate,
-        declarationTime: current24hTime,
-        declarationFillingTime: current24hTime,
-        hasMinor: formData.hasGuardian,
+        declarationTime: formData.declarationTime,
+        declarationFillingTime: formData.declarationTime,
+        hasMinor: formData.hasMinor,
         guardianName: formData.guardianName,
         guardianAddress: formData.guardianAddress,
         guardianPhone: formData.guardianPhone,
@@ -710,42 +927,11 @@ export default function DeclarationForm() {
         invoiceNo: formData.invoiceNo,
         boardingPassNo: formData.boardingPassNo,
         trip1Time: formData.trip1Time,
-        trip2Time: formData.trip2Time,
-        trip3Time: formData.trip3Time,
-        trip4Time: formData.trip4Time,
-        boatG1: formData.boatG1_1 || formData.boatG1_2 || formData.boatG1_3,
         isGeneralDeclaration: !bookingIdParam,
         language: selectedLang,
         source: bookingIdParam ? 'ONLINE_BOOKING_DECLARATION' : 'NAVBAR_DECLARATION',
         action: bookingIdParam ? 'ONLINE_DECLARATION' : 'GENERAL_DECLARATION'
       };
-
-      // Direct backup sync to user's Google Apps Script web app
-      try {
-        fetch(directDeclarationScriptUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...payload,
-            activities: activitiesStr,
-            "Activities": activitiesStr,
-            "Selected Activities": activitiesStr,
-            guestNamesAndAges: guestList.map((g, i) => `${i + 1}. ${g.name || 'Guest'}${g.age ? ` (${g.age} yrs)` : ''}`).join(', '),
-            timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-            "Guest Name": formData.guestName,
-            "Phone": formData.phone,
-            "Email": formData.email,
-            "Total Guests": guestCount,
-            "Agreement Date": formData.agreementDate,
-            "Declaration Date": formData.agreementDate,
-            "Declaration Time": current24hTime,
-            "Declaration Time (24h)": current24hTime,
-            "Declaration Filling Time": current24hTime,
-            "Signature": formData.signature
-          })
-        }).catch(() => {});
-      } catch (e) {}
 
       const res = await fetch('/api/waivers', {
         method: 'POST',
@@ -753,8 +939,10 @@ export default function DeclarationForm() {
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to save declaration form.');
+      const resData = await res.json().catch(() => ({}));
+
+      if (!res.ok || !resData.success || resData.syncedToSheets === false) {
+        throw new Error(resData.error || 'Something went wrong: Data could not be stored in Google Spreadsheet. Please verify Google Apps Script permissions.');
       }
 
       setSubmitted(true);
@@ -778,131 +966,7 @@ export default function DeclarationForm() {
         useCORS: true,
         allowTaint: true,
         logging: false,
-        backgroundColor: '#ffffff',
-        onclone: (clonedDoc) => {
-          const sanitizeCssText = (str: string) => {
-            return str
-              .replace(/oklab\([^)]+\)/gi, '#0f172a')
-              .replace(/oklch\([^)]+\)/gi, '#0f172a')
-              .replace(/color-mix\([^)]+\)/gi, '#0f172a')
-              .replace(/color\([^)]+\)/gi, '#0f172a')
-              .replace(/light-dark\([^)]+\)/gi, '#0f172a');
-          };
-
-          // Gather all CSS rules and remove original style tags so html2canvas doesn't read unsanitized CSSStyleSheet rules
-          let aggregatedCss = '';
-
-          const styleEls = Array.from(clonedDoc.querySelectorAll('style'));
-          styleEls.forEach((s) => {
-            if (s.textContent) {
-              aggregatedCss += s.textContent + '\n';
-            }
-            if (s.parentNode) s.parentNode.removeChild(s);
-          });
-
-          const linkEls = Array.from(clonedDoc.querySelectorAll('link[rel="stylesheet"]'));
-          linkEls.forEach((link) => {
-            try {
-              const sheet = Array.from(document.styleSheets).find(
-                (ss) => ss.href === (link as HTMLLinkElement).href || ss.ownerNode === link
-              );
-              if (sheet) {
-                try {
-                  const cssRules = Array.from(sheet.cssRules || []).map((r) => r.cssText).join('\n');
-                  aggregatedCss += cssRules + '\n';
-                } catch {
-                  // cross-origin
-                }
-              }
-            } catch {
-              // ignore
-            }
-            if (link.parentNode) link.parentNode.removeChild(link);
-          });
-
-          // Inject single clean, sanitized style tag
-          const cleanStyle = clonedDoc.createElement('style');
-          cleanStyle.textContent = sanitizeCssText(aggregatedCss);
-          clonedDoc.head.appendChild(cleanStyle);
-
-          // Sanitize inline style attributes on all cloned elements
-          const allEls = clonedDoc.querySelectorAll('*');
-          allEls.forEach((el) => {
-            const inlineStyle = el.getAttribute('style');
-            if (inlineStyle && /(oklab|oklch|color-mix|color|light-dark)\([^)]+\)/i.test(inlineStyle)) {
-              el.setAttribute('style', sanitizeCssText(inlineStyle));
-            }
-          });
-
-          const clonedArea = clonedDoc.getElementById('declaration-printable-area');
-          if (clonedArea) {
-            clonedArea.style.display = 'block';
-            clonedArea.style.maxWidth = '800px';
-            clonedArea.style.padding = '24px';
-            clonedArea.style.backgroundColor = '#ffffff';
-
-            const form = clonedArea.querySelector('form');
-            if (form) {
-              form.classList.remove('screen-only-hide-when-submitted');
-              form.style.display = 'block';
-              form.style.visibility = 'visible';
-            }
-
-            // Reveal hidden print blocks like Selected Activities summary
-            const printBlockElements = clonedArea.querySelectorAll('.hidden.print\\:block');
-            printBlockElements.forEach((el) => {
-              (el as HTMLElement).style.display = 'block';
-            });
-
-            // Convert interactive inputs/selects into visible text blocks so html2canvas captures filled values cleanly
-            const inputs = clonedArea.querySelectorAll('input, textarea, select');
-            inputs.forEach((inputEl) => {
-              const el = inputEl as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-              if (el.type === 'checkbox' || el.type === 'radio' || el.type === 'hidden' || el.type === 'submit') {
-                return;
-              }
-              const val = el.value || '';
-              const textSpan = clonedDoc.createElement('span');
-              textSpan.className = 'font-bold text-black text-xs sm:text-sm block py-1 border-b border-black';
-              textSpan.textContent = val || '—';
-              if (el.parentNode) {
-                el.style.display = 'none';
-                el.parentNode.insertBefore(textSpan, el);
-              }
-            });
-
-            // Handle Signatures in PDF export
-            if (formData.signature) {
-              const sigFields = clonedArea.querySelectorAll('#field-signature');
-              sigFields.forEach((field) => {
-                if (formData.signature.startsWith('data:image')) {
-                  const img = clonedDoc.createElement('img');
-                  img.src = formData.signature;
-                  img.className = 'max-h-16 w-auto object-contain border-b border-black py-1 my-1';
-                  field.appendChild(img);
-                  const canvasEl = field.querySelector('canvas');
-                  if (canvasEl) canvasEl.style.display = 'none';
-                } else if (formData.signature.startsWith('typed:')) {
-                  const typedVal = formData.signature.replace('typed:', '');
-                  const span = clonedDoc.createElement('span');
-                  span.className = 'font-serif italic font-bold text-base text-black block py-1 border-b border-black';
-                  span.textContent = typedVal;
-                  field.appendChild(span);
-                }
-              });
-            }
-
-            const printHiddenElements = clonedArea.querySelectorAll('.print\\:hidden');
-            printHiddenElements.forEach((el) => {
-              (el as HTMLElement).style.display = 'none';
-            });
-
-            const metaBar = clonedArea.querySelector('.print\\:flex');
-            if (metaBar) {
-              (metaBar as HTMLElement).style.display = 'flex';
-            }
-          }
-        }
+        backgroundColor: '#ffffff'
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -931,31 +995,93 @@ export default function DeclarationForm() {
         heightLeft -= (pdfHeight - (margin * 2));
       }
 
-      const docRef = formData.invoiceNo || bookingIdParam || 'DECLARATION';
+      const fullId = `${getIdPrefix(formData.agreementDate)}${formData.idSuffix.trim()}`;
       const guestNameClean = (formData.guestName || guestList[0]?.name || 'Guest').trim().replace(/\s+/g, '_');
-      pdf.save(`Declaration_Form_${docRef}_${guestNameClean}.pdf`);
+      pdf.save(`Declaration_Form_${fullId}_${guestNameClean}.pdf`);
     } catch (error) {
-      console.error('PDF generation error, falling back to print dialog:', error);
+      console.error('PDF generation error:', error);
       window.print();
     } finally {
       setIsGeneratingPdf(false);
     }
   };
 
+  const handleWhatsAppShare = () => {
+    const fullId = `${getIdPrefix(formData.agreementDate)}${formData.idSuffix.trim()}`;
+    const text = encodeURIComponent(
+      `*JOY WATER SPORTS VARKALA*\n` +
+      `*Water Sports Liability Waiver Confirmation*\n\n` +
+      `📌 *Declaration ID:* ${fullId}\n` +
+      `👤 *Primary Contact:* ${formData.guestName || guestList[0]?.name}\n` +
+      `👥 *Total Guests:* ${guestCount}\n` +
+      `🏄 *Activities:* ${selectedActivities.join(', ')}\n` +
+      `📅 *Date:* ${formData.agreementDate}\n` +
+      `✅ *Status:* Signed & Verified\n\n` +
+      `Thank you for completing your waiver with Joy Water Sports Varkala!`
+    );
+    const cleanPhone = formData.phone.replace(/[^0-9]/g, '');
+    const targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    window.open(`https://wa.me/${targetPhone}?text=${text}`, '_blank');
+  };
+
+  const handleStartNew = () => {
+    setSubmitted(false);
+    setGuestCount(1);
+    setGuestList([{ name: '', age: '' }]);
+    setFormData({
+      idSuffix: generateDefaultSuffix(),
+      guestName: '',
+      communicationAddress: '',
+      phone: '',
+      email: '',
+      signature: '',
+      agreementDate: new Date().toISOString().split('T')[0],
+      declarationTime: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit' }),
+      hasMinor: false,
+      guardianName: '',
+      guardianAddress: '',
+      guardianPhone: '',
+      guardianEmail: '',
+      guardianSignature: '',
+      guardianAgreementDate: new Date().toISOString().split('T')[0],
+      finalConfirmationAgreed: false,
+      invoiceNo: '',
+      boardingPassNo: '',
+      trip1Time: '',
+      dateOfSailing: new Date().toISOString().split('T')[0]
+    });
+    setPerGuestSignatures({});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-3 sm:px-6 lg:px-8 text-slate-900 font-sans print:bg-white print:p-0">
+      <SEOHead
+        title="Water Sports Liability Waiver & Declaration Form | Joy Water Sports Varkala"
+        description="Official Joy Water Sports Varkala liability waiver and declaration form. Complete mandatory safety declaration for parasailing, jet ski, and beach activities at Papanasam Beach."
+        canonicalUrl="https://joywatersports.com/declaration"
+        schema={[
+          joyWaterSportsBusinessSchema,
+          createBreadcrumbSchema([
+            { name: 'Home', url: 'https://joywatersports.com' },
+            { name: 'Liability Waiver Declaration', url: 'https://joywatersports.com/declaration' }
+          ])
+        ]}
+      />
+
       {/* Top Controls Bar (Hidden in Print) */}
       <div className="max-w-4xl mx-auto mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <button
+          type="button"
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-sky-700 bg-white px-3.5 py-2 rounded-lg border border-slate-300 shadow-sm transition-all cursor-pointer"
+          className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-sky-700 bg-white px-3.5 py-2 rounded-lg border border-slate-300 shadow-xs transition-all cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           {t.backToHome}
         </button>
 
-        {/* Top Language Select Dropdown in Controls Bar */}
-        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-300 shadow-sm">
+        {/* Language Selector */}
+        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-300 shadow-xs">
           <GoogleTranslateIcon className="w-4.5 h-4.5 text-sky-600 shrink-0" />
           <span className="text-xs font-bold text-slate-700 hidden sm:inline">{t.selectLanguage}:</span>
           <select
@@ -971,35 +1097,33 @@ export default function DeclarationForm() {
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleDownloadPDF}
-            disabled={isGeneratingPdf}
-            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg shadow transition-all cursor-pointer disabled:opacity-50"
-          >
-            {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span>{isGeneratingPdf ? 'Saving PDF...' : 'Save as PDF'}</span>
-          </button>
-        </div>
+
       </div>
 
-      {/* Main Printed Document Outer Border Frame */}
+      {/* Spot / Walk-In Registration Indicator */}
+      <div className="max-w-4xl mx-auto mb-3 p-2.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between text-xs text-blue-900 font-semibold print:hidden">
+        <span className="flex items-center gap-1.5 font-bold">
+          <ShieldCheck className="w-4 h-4 text-blue-600" />
+          WALK-IN & SPOT GUEST DECLARATION FORM
+        </span>
+        <span className="text-[11px] text-blue-700 font-medium hidden sm:inline">Joy Water Sports Varkala Counter</span>
+      </div>
+
+      {/* Printable Area Wrapper */}
       <div id="declaration-printable-area" className="max-w-4xl mx-auto bg-white border border-slate-900 shadow-xl p-5 sm:p-8 md:p-10 print:shadow-none print:border-slate-900 print:p-6 print:max-w-none">
         
-        {/* Header Section */}
+        {/* HEADER SECTION */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b-2 border-slate-900 pb-5 mb-5 print:pb-3 print:mb-4">
-          
-          {/* Left: Company Logo */}
           <div className="flex flex-col items-center justify-center text-center shrink-0">
             <img 
               src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx" 
               alt="Joy Water Sports Logo" 
+              loading="eager"
+              decoding="async"
               className="h-16 sm:h-20 w-auto object-contain" 
             />
           </div>
 
-          {/* Center/Right Header Title */}
           <div className="text-center sm:text-right flex-1">
             <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-black text-black tracking-wider uppercase">
               {t.title}
@@ -1013,52 +1137,65 @@ export default function DeclarationForm() {
           </div>
         </div>
 
-
-
-        {/* Confirmation Banner if Submitted (Hidden in Print so print output is clean document) */}
+        {/* SUCCESS STATE CONFIRMATION */}
         {submitted ? (
-          <div className="my-6 p-6 sm:p-8 bg-emerald-50 border-2 border-emerald-600 rounded-2xl text-center space-y-4 shadow-xl print:hidden">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 shadow-inner">
-              <CheckCircle2 className="w-10 h-10" />
+          <div className="my-4 p-4 sm:p-5 bg-emerald-50 border-2 border-emerald-600 rounded-xl text-center space-y-3 shadow-md print:hidden max-w-xl mx-auto">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 shadow-inner">
+              <CheckCircle2 className="w-7 h-7" />
             </div>
             
-            <div className="space-y-1">
-              <span className="text-[10px] font-extrabold text-emerald-800 tracking-widest uppercase bg-emerald-100 px-3 py-1 rounded-full inline-block">
-                AUTHENTICATED &amp; VERIFIED
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-extrabold text-emerald-800 tracking-widest uppercase bg-emerald-100 px-2.5 py-0.5 rounded-full inline-block">
+                VERIFIED &amp; RECORDED
               </span>
-              <h3 className="font-serif text-2xl sm:text-3xl font-black text-slate-900 uppercase pt-1">
+              <h3 className="font-serif text-lg sm:text-xl font-black text-slate-900 uppercase pt-1">
                 {t.submittedSuccessTitle}
               </h3>
-              <p className="text-sm font-semibold text-slate-700 max-w-lg mx-auto">
-                {t.submittedSuccessMsg(formData.guestName)}
+              <p className="text-xs sm:text-sm font-semibold text-slate-700 max-w-md mx-auto">
+                {t.submittedSuccessMsg(formData.guestName || guestList[0]?.name || 'Guest')}
               </p>
             </div>
 
-            {formData.invoiceNo && (
-              <div className="bg-white border border-emerald-200 rounded-xl p-3 max-w-md mx-auto text-xs text-slate-700 flex justify-between items-center font-mono shadow-2xs">
-                <span>Linked Booking Ref:</span>
-                <strong className="text-emerald-700 font-bold text-sm">#{formData.invoiceNo}</strong>
+            <div className="bg-white border border-emerald-300 rounded-xl p-3.5 sm:p-4 max-w-md mx-auto text-slate-800 space-y-2 text-left shadow-2xs">
+              <div className="flex flex-wrap justify-between items-center border-b border-emerald-100 pb-1.5 gap-1">
+                <span className="font-sans font-bold text-xs sm:text-sm text-slate-600">Declaration ID:</span>
+                <strong className="text-emerald-950 font-black text-base sm:text-lg tracking-wider font-mono">
+                  {getIdPrefix(formData.agreementDate)}{formData.idSuffix}
+                </strong>
               </div>
-            )}
+              <div className="flex flex-wrap justify-between items-center gap-1 text-xs sm:text-sm">
+                <span className="font-sans font-bold text-slate-600">Total Participants:</span>
+                <span className="font-black text-slate-900 text-sm sm:text-base">{guestCount} Guests</span>
+              </div>
+              <div className="flex flex-wrap justify-between items-center gap-1 text-xs sm:text-sm">
+                <span className="font-sans font-bold text-slate-600">Primary Contact:</span>
+                <span className="font-black text-slate-900 text-sm sm:text-base font-mono">{formData.phone}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 text-xs sm:text-sm pt-1.5 border-t border-emerald-100">
+                <span className="font-sans font-bold text-slate-600 shrink-0">Activities:</span>
+                <span className="font-black text-sky-900 text-sm sm:text-base sm:text-right leading-tight">{selectedActivities.join(', ')}</span>
+              </div>
+            </div>
 
-            {/* CTA Buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            {/* Action Buttons */}
+            <div className="pt-1 flex flex-wrap items-center justify-center gap-2.5">
               <button
                 type="button"
                 onClick={handleDownloadPDF}
                 disabled={isGeneratingPdf}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl text-xs sm:text-sm font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold shadow-sm transition-all cursor-pointer"
               >
-                {isGeneratingPdf ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Download className="w-4 h-4.5" />}
-                <span>{isGeneratingPdf ? 'Saving PDF...' : 'Save as PDF'}</span>
+                {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                <span>{isGeneratingPdf ? 'Saving PDF...' : 'Download / Save as PDF'}</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => navigate('/')}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-sky-600 text-white px-6 py-3 rounded-xl text-xs sm:text-sm font-extrabold hover:bg-sky-700 shadow-md transition-all cursor-pointer"
+                onClick={handleStartNew}
+                className="flex items-center gap-2 bg-sky-700 hover:bg-sky-800 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold shadow-sm transition-all cursor-pointer"
               >
-                {t.returnHome}
+                <RotateCcw className="w-4 h-4" />
+                <span>{t.startNewBtn}</span>
               </button>
             </div>
           </div>
@@ -1066,118 +1203,276 @@ export default function DeclarationForm() {
 
         {/* Printable Document Metadata Bar (Visible in Print Only) */}
         <div className="hidden print:flex items-center justify-between border-2 border-slate-900 p-2.5 mb-3 rounded-md text-xs font-mono font-bold text-black">
+          <span>ID NO: {getIdPrefix(formData.agreementDate)}{formData.idSuffix}</span>
           <span>BOOKING REF: #{formData.invoiceNo || 'WALK-IN'}</span>
           <span>PRIMARY GUEST: {formData.guestName || guestList[0]?.name || 'N/A'}</span>
-          <span>PHONE: {formData.phone || 'N/A'}</span>
           <span>DATE: {formData.agreementDate || new Date().toISOString().split('T')[0]}</span>
         </div>
 
-        {/* Error Message Box */}
+        {/* Global Error Banner */}
         {errorMessage && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-700 text-xs font-bold rounded print:hidden">
-            {errorMessage}
+          <div className="mb-4 p-3.5 bg-red-50 border-2 border-red-500 text-red-800 text-xs font-bold rounded-lg print:hidden flex items-start gap-2.5 shadow-xs">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-extrabold uppercase block text-[11px] text-red-900">Form Incomplete</span>
+              <span>{errorMessage}</span>
+            </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className={`space-y-6 print:space-y-4 ${submitted ? 'screen-only-hide-when-submitted' : ''}`}>
+
+        {/* FORM CONTAINER */}
+        <form onSubmit={handleSubmit} className={`space-y-6 print:space-y-4 ${submitted ? 'hidden print:block' : ''}`}>
           
-          {/* Terms List (Bulleted with ➤ arrow-style bullets) */}
-          <div className="space-y-2.5 sm:space-y-3 text-xs sm:text-[13px] leading-relaxed text-slate-900 font-sans print:text-[11px] print:leading-tight">
-            {t.terms.map((term, index) => (
-              <div key={index} className="flex items-start gap-2">
-                <span className="text-sky-600 font-bold shrink-0 text-sm print:text-black">➤</span>
-                <span>{term}</span>
-              </div>
-            ))}
+          {/* DECLARATION / SAFETY INFORMATION (Top Section) */}
+          <div id="step-safety-terms" className="space-y-3 border-b-2 border-slate-900 pb-5 print:pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+              <h3 className="font-serif font-black text-sm sm:text-base text-black uppercase tracking-wider flex items-center gap-2">
+                <span>Water Sports Liability Waiver &amp; Safety Information</span>
+              </h3>
+              <span className="text-[11px] text-slate-500 font-medium italic print:hidden">Read carefully before signing</span>
+            </div>
+
+            {/* Terms List (Bulleted with ➤ arrow-style bullets) */}
+            <div className="space-y-2.5 sm:space-y-3 text-xs sm:text-[13px] leading-relaxed text-slate-900 font-sans print:text-[11px] print:leading-tight">
+              {t.terms.map((term, index) => (
+                <div key={index} className="flex items-start gap-2.5">
+                  <span className="text-sky-700 font-black shrink-0 text-sm print:text-black">➤</span>
+                  <span>{term}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Guest Details Section (rounded-corner bordered box) */}
-          <div className="border border-slate-800 rounded-lg p-4 sm:p-5 bg-white space-y-3.5 print:p-3 print:space-y-2">
-            <h3 className="font-serif font-bold text-sm text-slate-900 uppercase tracking-wider border-b border-slate-300 pb-1.5 flex items-center justify-between">
-              <span>{t.guestDetailsHeader}</span>
-              <span className="text-xs font-sans text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-0.5 rounded-full lowercase tracking-normal font-medium">
-                max 20 guests
-              </span>
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-2">
-              {/* Total Guest Selection (1 - 20) */}
-              <div className="md:col-span-2 p-3 bg-slate-50 border border-slate-300 rounded-lg flex flex-wrap items-center justify-between gap-3 print:bg-transparent print:border-slate-800 print:p-2">
-                <div>
-                  <label className="text-xs font-serif font-bold text-slate-900 uppercase">
-                    {t.totalGuestsLabel} <span className="text-red-600 print:hidden">*</span>
-                  </label>
-                  <p className="text-[11px] text-slate-600 print:hidden">
-                    Select how many guests are participating in this trip
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="hidden print:inline-block font-bold text-black text-sm">
-                    {guestCount} {guestCount === 1 ? 'Guest' : 'Guests'}
-                  </span>
-                  <select
-                    value={guestCount}
-                    onChange={(e) => handleGuestCountChange(parseInt(e.target.value) || 1)}
-                    className="bg-white border-2 border-sky-600 text-sky-950 font-bold text-sm rounded-lg px-3 py-1.5 focus:outline-none cursor-pointer shadow-xs focus:ring-2 focus:ring-sky-500 print:hidden"
-                  >
-                    {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
-                      <option key={num} value={num}>
-                        {num} {num === 1 ? 'Guest' : 'Guests'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          {/* DECLARATION ID */}
+          <div id="step-declaration-id" className="border-2 border-slate-900 rounded-lg p-3.5 sm:p-4 bg-sky-50/80 space-y-2 print:p-2.5 print:bg-transparent">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <label htmlFor="idSuffixInput" className="text-xs font-serif font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Declaration ID / Counter Ticket No.</span>
+                  <span className="text-red-600 print:hidden">*</span>
+                </label>
+                <p className="text-[11px] text-slate-600 print:hidden font-medium mt-0.5">
+                  Prefix starts with <span className="font-mono font-bold text-slate-900">JWS</span> + Date (<span className="font-mono font-bold text-slate-900">{getIdPrefix(formData.agreementDate)}</span>). Enter the <strong>Counter Ticket Number</strong> (last 2 to 4 digits).
+                </p>
               </div>
 
-              {/* Dynamic Guest Name & Age Inputs */}
-              <div className="md:col-span-2 space-y-2.5 bg-sky-50/50 p-3 rounded-lg border border-sky-100 print:bg-transparent print:border-slate-800 print:p-2">
-                <div className="flex items-center justify-between border-b border-sky-200 pb-1.5 print:border-slate-800">
-                  <h4 className="font-serif font-bold text-xs text-sky-950 uppercase tracking-wider flex items-center gap-2 print:text-black">
-                    <span>{t.guestListHeader}</span>
-                    <span className="bg-sky-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans print:bg-slate-900">
-                      {guestCount} {guestCount === 1 ? 'Person' : 'People'}
-                    </span>
-                  </h4>
+              {/* ID Badge + Editable Suffix Input */}
+              <div className="flex flex-col items-start sm:items-end gap-1">
+                <span className="text-[10px] font-bold text-sky-900 uppercase font-sans print:hidden">
+                  Counter Ticket No. (2–4 Digits) <span className="text-red-600">*</span>
+                </span>
+                <div className="flex items-center bg-white border-2 border-slate-900 rounded-lg overflow-hidden shadow-2xs font-mono">
+                  <span className="bg-slate-900 text-white font-black px-3 py-1.5 text-xs sm:text-sm tracking-wider select-none shrink-0 print:bg-slate-200 print:text-black">
+                    {getIdPrefix(formData.agreementDate)}
+                  </span>
+                  <input
+                    id="idSuffixInput"
+                    type="text"
+                    name="idSuffix"
+                    value={formData.idSuffix}
+                    onChange={handleChange}
+                    placeholder="e.g. 1234"
+                    maxLength={8}
+                    required
+                    className="w-24 sm:w-28 px-2.5 py-1.5 text-slate-900 font-extrabold text-xs sm:text-sm focus:outline-none focus:bg-amber-50 uppercase tracking-widest placeholder:text-slate-400 font-sans"
+                  />
                 </div>
+              </div>
+            </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 print:gap-2">
-                  {guestList.map((g, idx) => (
-                    <div key={idx} className="bg-white p-2.5 rounded-lg border border-slate-300 flex items-center gap-2 shadow-2xs print:bg-transparent print:border-slate-800 print:p-1.5 print:shadow-none">
-                      <span className="text-xs font-bold text-sky-800 bg-sky-100 px-2 py-1 rounded shrink-0 font-mono print:bg-slate-200 print:text-black">
-                        #{idx + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase print:text-slate-800">
-                          {t.guestNumberLabel(idx + 1)} {t.guestNameLabel} {idx === 0 && <span className="text-red-600 print:hidden">*</span>}
-                        </label>
-                        <input
-                          type="text"
-                          value={g.name}
-                          onChange={(e) => handleGuestItemChange(idx, 'name', e.target.value)}
-                          placeholder={idx === 0 ? t.guestNamePlaceholder : `Guest ${idx + 1} Name`}
-                          required={idx === 0}
-                          className="w-full border-b border-dotted border-slate-600 bg-transparent px-1 py-0.5 text-xs font-medium focus:outline-none focus:border-sky-600 text-slate-900 print:font-bold print:text-black print:border-solid print:border-black"
-                        />
+            <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-700 border-t border-sky-200/80 pt-1.5 print:border-slate-800">
+              <span>
+                Full Declaration ID: {' '}
+                {formData.idSuffix.trim() ? (
+                  <strong className="text-sky-900 font-black text-xs sm:text-sm tracking-wider print:text-black">
+                    {getIdPrefix(formData.agreementDate)}{formData.idSuffix.trim()}
+                  </strong>
+                ) : (
+                  <span className="text-amber-800 font-bold italic font-sans text-xs">
+                    {getIdPrefix(formData.agreementDate)} <span className="underline decoration-dashed">(Enter Counter Ticket No.)</span>
+                  </span>
+                )}
+              </span>
+              <span className="text-[10px] text-slate-500 font-sans italic print:hidden">Mandatory Counter Ticket No.</span>
+            </div>
+          </div>
+
+          {/* PARTICIPANT / GUEST COUNT */}
+          <div id="step-guest-count" className="border border-slate-800 rounded-lg p-4 sm:p-5 bg-white space-y-3 print:p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-2">
+              <div>
+                <h3 className="font-serif font-black text-xs sm:text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span>{t.totalGuestsLabel}</span>
+                  <span className="text-red-600 print:hidden">*</span>
+                </h3>
+                <p className="text-[11px] text-slate-600 print:hidden font-medium">
+                  {t.totalGuestsSubtitle}
+                </p>
+              </div>
+
+              {/* Guest Count Selector (1-20) */}
+              <div className="flex items-center gap-2">
+                <span className="hidden print:inline-block font-bold text-black text-sm">
+                  {guestCount} {guestCount === 1 ? 'Guest' : 'Guests'}
+                </span>
+                <select
+                  value={guestCount}
+                  onChange={(e) => handleGuestCountChange(parseInt(e.target.value) || 1)}
+                  className="bg-sky-50 border-2 border-sky-700 text-sky-950 font-black text-sm rounded-lg px-3 py-1.5 focus:outline-none cursor-pointer shadow-2xs focus:ring-2 focus:ring-sky-500 print:hidden"
+                >
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
+                    <option key={num} value={num}>
+                      {num} {num === 1 ? 'Guest' : 'Guests'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* GUEST / PARTICIPANT DETAILS */}
+            <div id="step-guest-details" className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <h4 className="font-serif font-bold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span>{t.guestListHeader}</span>
+                </h4>
+                <span className="text-[11px] font-semibold text-sky-800 bg-sky-100 px-2.5 py-0.5 rounded-full font-sans print:bg-slate-200 print:text-black">
+                  {guestCount} {guestCount === 1 ? 'Participant' : 'Participants'}
+                </span>
+              </div>
+
+              {/* Grid of Compact Participant Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 print:gap-2">
+                {guestList.map((g, idx) => {
+                  const isMinor = parseInt(g.age, 10) < 18;
+                  return (
+                    <div
+                      key={idx}
+                      id={`field-guest-name-${idx}`}
+                      className={`p-3 rounded-lg border-2 flex flex-col gap-2 shadow-2xs print:bg-transparent print:border-slate-800 print:p-2 print:shadow-none ${
+                        isMinor ? 'bg-amber-50/70 border-amber-400' : 'bg-slate-50/70 border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-sky-900 bg-sky-100 px-2 py-0.5 rounded font-mono print:bg-slate-200 print:text-black">
+                          GUEST {idx + 1}
+                        </span>
+                        {isMinor && (
+                          <span className="text-[10px] font-extrabold text-amber-800 bg-amber-200 px-2 py-0.5 rounded-full uppercase print:border print:border-black">
+                            Minor (&lt;18 yrs)
+                          </span>
+                        )}
                       </div>
-                      <div className="w-16 shrink-0">
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase text-center print:text-slate-800">
-                          {t.ageLabel}
-                        </label>
-                        <input
-                          type="text"
-                          value={g.age}
-                          onChange={(e) => handleGuestItemChange(idx, 'age', e.target.value)}
-                          placeholder={t.agePlaceholder}
-                          className="w-full border-b border-dotted border-slate-600 bg-transparent px-1 py-0.5 text-xs font-medium focus:outline-none focus:border-sky-600 text-center text-slate-900 print:font-bold print:text-black print:border-solid print:border-black"
-                        />
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase print:text-slate-800">
+                            {t.guestNameLabel} {idx === 0 && <span className="text-red-600 print:hidden">*</span>}
+                          </label>
+                          <input
+                            type="text"
+                            value={g.name}
+                            onChange={(e) => handleGuestItemChange(idx, 'name', e.target.value)}
+                            placeholder={idx === 0 ? t.guestNamePlaceholder : `Guest ${idx + 1} Full Name`}
+                            required={idx === 0}
+                            className="w-full border-b border-dotted border-slate-700 bg-transparent px-1 py-0.5 text-xs font-semibold focus:outline-none focus:border-sky-600 text-slate-900 print:font-bold print:text-black print:border-solid print:border-black"
+                          />
+                        </div>
+
+                        <div className="w-14 shrink-0">
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase text-center print:text-slate-800">
+                            {t.ageLabel} *
+                          </label>
+                          <input
+                            type="text"
+                            value={g.age}
+                            onChange={(e) => handleGuestItemChange(idx, 'age', e.target.value)}
+                            placeholder={t.agePlaceholder}
+                            maxLength={3}
+                            className="w-full border-b border-dotted border-slate-700 bg-transparent px-1 py-0.5 text-xs font-semibold focus:outline-none focus:border-sky-600 text-center text-slate-900 print:font-bold print:text-black print:border-solid print:border-black"
+                          />
+                        </div>
+
+                        <div className="w-20 shrink-0">
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase text-center print:text-slate-800">
+                            Gender
+                          </label>
+                          <select
+                            value={g.gender || ''}
+                            onChange={(e) => handleGuestItemChange(idx, 'gender', e.target.value)}
+                            className="w-full border-b border-dotted border-slate-700 bg-transparent px-0.5 py-0.5 text-xs font-semibold focus:outline-none focus:border-sky-600 text-center text-slate-900 cursor-pointer print:font-bold print:text-black print:border-solid print:border-black"
+                          >
+                            <option value="">- Gender -</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
 
-              {/* Communication Address */}
-              <div className="md:col-span-2 space-y-1">
+              {/* Guardian Section if Minors (<18) exist */}
+              {formData.hasMinor && (
+                <div className="mt-3 p-3.5 bg-amber-50 border-2 border-amber-400 rounded-lg space-y-2.5 print:bg-transparent print:border-slate-800">
+                  <h4 className="font-serif font-extrabold text-xs text-amber-950 uppercase tracking-wide flex items-center gap-1.5 print:text-black">
+                    <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 print:hidden" />
+                    <span>{t.guardianHeader}</span>
+                  </h4>
+                  <p className="text-[11px] text-amber-900 print:text-slate-800 italic">
+                    {t.guardianNote}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-700 uppercase">
+                        {t.guardianNameLabel} *
+                      </label>
+                      <input
+                        type="text"
+                        name="guardianName"
+                        value={formData.guardianName}
+                        onChange={handleChange}
+                        placeholder={t.guardianNamePlaceholder}
+                        required={formData.hasMinor}
+                        className="w-full border-b-2 border-dotted border-amber-800 bg-transparent px-1 py-0.5 text-xs font-bold focus:outline-none text-slate-900 print:border-solid print:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-700 uppercase">
+                        Guardian Contact Phone *
+                      </label>
+                      <input
+                        type="tel"
+                        name="guardianPhone"
+                        value={formData.guardianPhone}
+                        onChange={handleChange}
+                        placeholder={t.guardianPhonePlaceholder}
+                        required={formData.hasMinor}
+                        className="w-full border-b-2 border-dotted border-amber-800 bg-transparent px-1 py-0.5 text-xs font-bold focus:outline-none text-slate-900 print:border-solid print:border-black"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* PRIMARY CONTACT / COMMUNICATION DETAILS */}
+          <div id="step-primary-contact" className="border border-slate-800 rounded-lg p-4 sm:p-5 bg-white space-y-3.5 print:p-3">
+            <div>
+              <h3 className="font-serif font-black text-xs sm:text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-200 pb-1.5">
+                <span>{t.primaryContactHeader}</span>
+              </h3>
+              <p className="text-[11px] text-slate-600 print:hidden font-medium mt-1">
+                {t.primaryContactSubtitle}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-2">
+              {/* Full Address */}
+              <div id="field-address" className="md:col-span-2 space-y-1">
                 <label className="text-xs font-serif font-bold text-slate-900 uppercase">
                   {t.commAddressLabel}
                 </label>
@@ -1191,8 +1486,8 @@ export default function DeclarationForm() {
                 />
               </div>
 
-              {/* Telephone/mobile No */}
-              <div className="space-y-1">
+              {/* Telephone / Mobile No */}
+              <div id="field-phone" className="space-y-1">
                 <label className="text-xs font-serif font-bold text-slate-900 uppercase">
                   {t.phoneLabel} <span className="text-red-600 print:hidden">*</span>
                 </label>
@@ -1203,12 +1498,12 @@ export default function DeclarationForm() {
                   onChange={handleChange}
                   required
                   placeholder={t.phonePlaceholder}
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600 print:font-bold print:text-black print:border-solid print:border-black"
+                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-semibold focus:outline-none focus:border-solid focus:border-sky-600 print:font-bold print:text-black print:border-solid print:border-black"
                 />
               </div>
 
               {/* Email Address */}
-              <div className="space-y-1">
+              <div id="field-email" className="space-y-1">
                 <label className="text-xs font-serif font-bold text-slate-900 uppercase">
                   {t.emailLabel}
                 </label>
@@ -1221,100 +1516,336 @@ export default function DeclarationForm() {
                   className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600 print:font-bold print:text-black print:border-solid print:border-black"
                 />
               </div>
+            </div>
+          </div>
 
-              {/* Activities Selection Section (Above Signature) */}
-              <div className="md:col-span-2 border border-slate-300 rounded-lg p-3.5 sm:p-4 bg-slate-50/70 space-y-2.5 my-1 print:p-2 print:border-slate-800">
-                <h3 className="font-serif font-bold text-xs sm:text-sm text-slate-900 uppercase tracking-wider border-b border-slate-300 pb-1 flex items-center justify-between">
-                  <span>Participating Water Sports Activities</span>
-                  <span className="text-[11px] font-sans text-sky-800 bg-sky-100/80 border border-sky-200 px-2 py-0.5 rounded-full lowercase tracking-normal font-semibold print:bg-transparent print:border-black print:text-black">
-                    {selectedActivities.length} {selectedActivities.length === 1 ? 'activity' : 'activities'} selected
-                  </span>
+          {/* ACTIVITY SELECTION */}
+          <div id="step-activities" className="border border-slate-800 rounded-lg p-4 sm:p-5 bg-white space-y-3.5 print:p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+              <div>
+                <h3 className="font-serif font-black text-xs sm:text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span>{t.activitiesHeader}</span>
                 </h3>
-                <p className="text-[11px] text-slate-600 print:hidden font-medium">
-                  Select all water sports activities you or your group will be participating in:
+                <p className="text-[11px] text-slate-600 print:hidden font-medium mt-0.5">
+                  Select water sports activities participating in this trip:
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 print:flex print:flex-wrap print:gap-2">
-                  {DECLARATION_ACTIVITIES.map((act) => {
-                    const isChecked = selectedActivities.includes(act);
-                    return (
-                      <button
-                        key={act}
-                        type="button"
-                        onClick={() => handleActivityToggle(act)}
-                        className={`flex items-center gap-2 p-2 rounded-lg border-2 text-xs font-extrabold transition-all text-left cursor-pointer select-none ${
-                          isChecked
-                            ? 'border-sky-600 bg-white text-sky-950 shadow-xs print:border-black print:bg-slate-100 print:text-black'
-                            : 'border-slate-200 bg-white/50 text-slate-600 hover:border-slate-300 print:hidden'
-                        }`}
-                      >
-                        <div className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${
-                          isChecked ? 'bg-sky-600 border-sky-600 text-white print:bg-black print:border-black' : 'border-slate-400 bg-white'
-                        }`}>
-                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+              </div>
+
+              {/* Interaction Mode Toggle */}
+              <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg print:hidden">
+                <button
+                  type="button"
+                  onClick={() => setApplyToAllGuests(true)}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded transition-all cursor-pointer ${
+                    applyToAllGuests ? 'bg-sky-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {t.applyToAllGuestsLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApplyToAllGuests(false)}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded transition-all cursor-pointer ${
+                    !applyToAllGuests ? 'bg-sky-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {t.customizePerGuestLabel}
+                </button>
+              </div>
+            </div>
+
+            {/* Mode A: Group Level Activity Selector */}
+            {applyToAllGuests ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 print:flex print:flex-wrap print:gap-2">
+                {DECLARATION_ACTIVITIES.map((act) => {
+                  const isChecked = selectedActivities.includes(act);
+                  return (
+                    <button
+                      key={act}
+                      type="button"
+                      onClick={() => handleActivityToggleGroup(act)}
+                      className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-xs font-extrabold transition-all text-left cursor-pointer select-none ${
+                        isChecked
+                          ? 'border-sky-700 bg-sky-50/80 text-sky-950 shadow-2xs print:border-black print:bg-slate-100 print:text-black'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 print:hidden'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${
+                        isChecked ? 'bg-sky-700 border-sky-700 text-white print:bg-black print:border-black' : 'border-slate-400 bg-white'
+                      }`}>
+                        {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </div>
+                      <span>{act}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              /* Mode B: Per Participant Activity Customization */
+              <div className="space-y-3">
+                {guestList.map((g, gIdx) => (
+                  <div key={gIdx} className="p-3 border border-slate-300 rounded-lg bg-slate-50 space-y-2">
+                    <span className="text-xs font-black text-sky-950 uppercase">
+                      Guest {gIdx + 1}: {g.name || `Participant ${gIdx + 1}`}
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {DECLARATION_ACTIVITIES.map((act) => {
+                        const guestActs = perGuestActivities[gIdx] || selectedActivities;
+                        const isChecked = guestActs.includes(act);
+                        return (
+                          <button
+                            key={act}
+                            type="button"
+                            onClick={() => handleActivityTogglePerGuest(gIdx, act)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold cursor-pointer ${
+                              isChecked ? 'bg-sky-900 border-sky-900 text-white' : 'bg-white border-slate-300 text-slate-700'
+                            }`}
+                          >
+                            {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                            <span>{act}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="hidden print:block text-xs font-bold font-serif text-slate-900 border-t border-slate-200 pt-1.5">
+              Selected Activities: {selectedActivities.join(', ')}
+            </div>
+          </div>
+
+          {/* FINAL CONFIRMATION */}
+          <div id="field-confirmation" className="border-2 border-slate-900 rounded-lg p-4 sm:p-5 bg-amber-50/60 space-y-3 print:bg-transparent">
+            <h3 className="font-serif font-black text-xs sm:text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-amber-200/80 pb-1.5 print:border-slate-800">
+              <span>{t.finalDeclarationHeader}</span>
+            </h3>
+
+            <p className="text-xs sm:text-[13px] font-medium text-slate-900 leading-relaxed">
+              "{t.finalDeclarationText}"
+            </p>
+
+            <label className="flex items-start gap-3 pt-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="finalConfirmationAgreed"
+                checked={formData.finalConfirmationAgreed}
+                onChange={handleChange}
+                required
+                className="mt-0.5 w-4.5 h-4.5 accent-sky-900 border-2 border-slate-800 rounded cursor-pointer shrink-0"
+              />
+              <span className="text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-wide">
+                {t.finalDeclarationCheckboxLabel} <span className="text-red-600 print:hidden">*</span>
+              </span>
+            </label>
+          </div>
+
+          {/* GUEST SIGNATURE & DATE */}
+          <div id="field-signature" className="border border-slate-800 rounded-lg p-4 sm:p-5 bg-white space-y-4 print:p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+              <h3 className="font-serif font-black text-xs sm:text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <span>{t.guestSigLabel}</span>
+                <span className="text-red-600 print:hidden">*</span>
+              </h3>
+
+              {/* Single vs Multi signature toggle for group bookings */}
+              {guestCount > 1 && (
+                <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg text-[11px] font-bold print:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setIsGroupSignature(true)}
+                    className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
+                      isGroupSignature ? 'bg-sky-900 text-white' : 'text-slate-600'
+                    }`}
+                  >
+                    {t.signForGroupLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsGroupSignature(false)}
+                    className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
+                      !isGroupSignature ? 'bg-sky-900 text-white' : 'text-slate-600'
+                    }`}
+                  >
+                    {t.individualSignaturesLabel}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2 space-y-2">
+                {isGroupSignature ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide">
+                        Type Full Legal Name as Digital Signature <span className="text-red-600 print:hidden">*</span>
+                      </label>
+                      {(formData.guestName || guestList[0]?.name) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nameToUse = formData.guestName || guestList[0]?.name || '';
+                            setFormData(prev => ({ ...prev, signature: nameToUse }));
+                          }}
+                          className="text-[11px] text-sky-800 font-bold hover:underline cursor-pointer flex items-center gap-1 print:hidden"
+                        >
+                          <span>Use "{formData.guestName || guestList[0]?.name}"</span>
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      name="signature"
+                      value={formData.signature}
+                      onChange={(e) => setFormData(prev => ({ ...prev, signature: e.target.value }))}
+                      placeholder="Type full legal name as digital signature..."
+                      required
+                      className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:outline-none focus:border-sky-700 print:border-b-2 print:border-solid print:border-black print:bg-transparent"
+                    />
+                    {formData.signature && (
+                      <div className="p-3 bg-slate-50 border border-slate-300 rounded-lg flex items-center justify-between">
+                        <div>
+                          <span className="block text-[10px] uppercase font-mono text-slate-500 font-bold">Digital Signature Preview:</span>
+                          <p className="font-serif italic font-bold text-base sm:text-lg text-sky-950 tracking-wider">
+                            /s/ {formData.signature}
+                          </p>
                         </div>
-                        <span>{act}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="hidden print:block text-xs font-bold font-serif text-slate-900 border-t border-slate-200 pt-1.5">
-                  Selected Activities: {selectedActivities.join(', ')}
-                </div>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold uppercase print:hidden">
+                          Verified
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-slate-500 italic print:hidden">
+                      By typing your full legal name, you confirm and declare that this serves as your legally binding digital signature.
+                    </p>
+                  </div>
+                ) : (
+                  /* Per Participant Signatures */
+                  <div className="space-y-3">
+                    <span className="block text-xs font-bold text-slate-800 uppercase tracking-wide">
+                      Participant Digital Typed Signatures <span className="text-red-600 print:hidden">*</span>
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {guestList.map((g, gIdx) => {
+                        const currentSig = perGuestSignatures[gIdx] ?? (gIdx === 0 ? formData.signature : '');
+                        return (
+                          <div key={gIdx} className="p-3 border border-slate-300 rounded-lg bg-slate-50 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <label className="block text-[11px] font-black text-slate-800 uppercase">
+                                Guest {gIdx + 1}: {g.name || `Participant ${gIdx + 1}`}
+                              </label>
+                              {g.name && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPerGuestSignatures(prev => ({ ...prev, [gIdx]: g.name }));
+                                    if (gIdx === 0) setFormData(prev => ({ ...prev, signature: g.name }));
+                                  }}
+                                  className="text-[10px] text-sky-800 font-bold hover:underline cursor-pointer print:hidden"
+                                >
+                                  Use Name
+                                </button>
+                              )}
+                            </div>
+                            <input
+                              type="text"
+                              value={currentSig}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPerGuestSignatures(prev => ({ ...prev, [gIdx]: val }));
+                                if (gIdx === 0) setFormData(prev => ({ ...prev, signature: val }));
+                              }}
+                              placeholder={`Type signature for Guest ${gIdx + 1}`}
+                              className="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-sky-700"
+                            />
+                            {currentSig && (
+                              <p className="font-serif italic font-bold text-xs text-sky-950 tracking-wider pt-0.5">
+                                /s/ {currentSig}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Guest Signature */}
-              <div className="space-y-1">
-                <SignaturePad
-                  label={t.guestSigLabel}
-                  required
-                  onSignatureChange={(sig) => setFormData(prev => ({ ...prev, signature: sig }))}
-                />
-              </div>
-
-              {/* Date */}
+              {/* DATE (Auto-populated current date) */}
               <div className="space-y-1 flex flex-col justify-end">
-                <label className="text-xs font-serif font-bold text-slate-900 uppercase block mb-0.5">
-                  {t.dateLabel} <span className="text-red-600 print:hidden">*</span>
+                <label className="text-xs font-serif font-black text-slate-900 uppercase flex items-center gap-1.5 mb-1">
+                  <span>{t.dateLabel}</span>
                 </label>
                 <input
                   type="date"
                   name="agreementDate"
                   value={formData.agreementDate}
-                  onChange={handleChange}
-                  required
-                  className="w-full border-b-2 border-dotted border-slate-700 bg-transparent rounded-none px-1 py-1 text-sm font-medium focus:outline-none focus:border-solid focus:border-sky-600 print:font-bold print:text-black print:border-solid print:border-black"
+                  readOnly
+                  tabIndex={-1}
+                  className="w-full border-b-2 border-dotted border-slate-700 bg-slate-50 px-2 py-1.5 text-xs sm:text-sm font-extrabold text-slate-900 cursor-not-allowed select-none print:bg-transparent print:border-solid print:border-black"
                 />
+                <span className="text-[10px] text-slate-500 italic print:hidden">Auto-generated booking date</span>
               </div>
             </div>
           </div>
 
-          {/* Form Submit Button (Hidden in Print) */}
-          {!submitted && (
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
-              <p className="text-xs text-slate-500 italic">
+          {/* FINAL REVIEW + SUBMIT SUMMARY BOX */}
+          <div id="step-summary" className="border-2 border-slate-900 rounded-lg p-4 bg-sky-50/60 space-y-3 print:hidden">
+            <h3 className="font-serif font-black text-xs sm:text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-sky-200 pb-1.5">
+              <span>{t.summaryHeader}</span>
+            </h3>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+              <div className="bg-white p-2 rounded border border-slate-300">
+                <span className="block text-[10px] font-sans text-slate-500 font-bold uppercase">Declaration ID</span>
+                <strong className="text-sky-950 font-black">
+                  {formData.idSuffix.trim() ? `${getIdPrefix(formData.agreementDate)}${formData.idSuffix.trim()}` : `${getIdPrefix(formData.agreementDate)} (Pending Ticket #)`}
+                </strong>
+              </div>
+              <div className="bg-white p-2 rounded border border-slate-300">
+                <span className="block text-[10px] font-sans text-slate-500 font-bold uppercase">Total Guests</span>
+                <strong className="text-slate-900 font-black">{guestCount} Guests</strong>
+              </div>
+              <div className="bg-white p-2 rounded border border-slate-300">
+                <span className="block text-[10px] font-sans text-slate-500 font-bold uppercase">Primary Contact</span>
+                <strong className="text-slate-900 font-black truncate block">{formData.phone || 'Not Entered'}</strong>
+              </div>
+              <div className="bg-white p-2 rounded border border-slate-300">
+                <span className="block text-[10px] font-sans text-slate-500 font-bold uppercase">Signature Status</span>
+                <strong className={`font-black ${formData.signature ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {formData.signature ? 'Ready ✓' : 'Pending'}
+                </strong>
+              </div>
+            </div>
+
+            {/* SUBMIT BUTTON */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-[11px] text-slate-600 italic">
                 {t.footerNotice}
               </p>
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full sm:w-auto bg-[#091F44] hover:bg-[#004E98] text-white px-8 py-3 rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                disabled={loading || !formData.finalConfirmationAgreed || !formData.phone}
+                className="w-full sm:w-auto bg-[#091F44] hover:bg-[#004E98] text-white px-8 py-3 rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shrink-0"
               >
                 {loading ? (
                   <span>{t.submittingBtn}</span>
                 ) : (
                   <>
                     <FileText className="w-4 h-4" />
-                    {t.submitBtn}
+                    <span>{t.submitBtn}</span>
                   </>
                 )}
               </button>
             </div>
-          )}
+          </div>
 
         </form>
       </div>
     </div>
   );
 }
-
