@@ -1,5 +1,6 @@
 import React from 'react';
 import { Instagram, Youtube, MapPin, Phone, Mail, ArrowRight, Linkedin } from 'lucide-react';
+import ResponsiveImage from './ResponsiveImage';
 
 export default function Footer() {
   return (
@@ -13,7 +14,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-4 sm:col-span-2 lg:col-span-4">
             <div className="flex items-center gap-3 mb-4 sm:mb-6">
-              <img src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx" alt="Logo" loading="lazy" decoding="async" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+              <ResponsiveImage src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx" alt="Joy Water Sports Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" sizes="40px" />
               <span className="text-xl sm:text-2xl font-display tracking-widest text-white">Joy Water Sports</span>
             </div>
             <p className="text-white/70 text-sm sm:text-base leading-relaxed mb-6 sm:mb-8 max-w-sm font-light">
@@ -40,7 +41,6 @@ export default function Footer() {
               <ul className="space-y-2 sm:space-y-4">
                 <li><a href="#booking-section" className="text-white/60 hover:text-sky-blue text-xs sm:text-sm transition-colors flex items-center gap-2 group"><ArrowRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" /> Home</a></li>
                 <li><a href="#activities-section" className="text-white/60 hover:text-sky-blue text-xs sm:text-sm transition-colors flex items-center gap-2 group"><ArrowRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" /> Activities</a></li>
-                <li><a href="#pricing-section" className="text-white/60 hover:text-sky-blue text-xs sm:text-sm transition-colors flex items-center gap-2 group"><ArrowRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" /> Packages</a></li>
                 <li><a href="#reviews-section" className="text-white/60 hover:text-sky-blue text-xs sm:text-sm transition-colors flex items-center gap-2 group"><ArrowRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" /> Reviews</a></li>
                 <li><a href="#booking-section" className="text-white/60 hover:text-sky-blue text-xs sm:text-sm transition-colors flex items-center gap-2 group"><ArrowRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" /> Contact</a></li>
               </ul>
