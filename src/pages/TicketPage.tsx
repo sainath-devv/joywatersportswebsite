@@ -7,6 +7,7 @@ import Footer from '../components/common/Footer';
 import MinimalistLoader from '../components/common/MinimalistLoader';
 import { downloadTicketPDF, getTicketPDFBlob, formatActivitiesList } from '../utils/generateTicketPDF';
 import { formatSafeErrorMessage } from '../lib/errorHandler';
+import SEOHead, { createBreadcrumbSchema, joyWaterSportsBusinessSchema } from '../components/common/SEOHead';
 
 export default function TicketPage() {
   const { id } = useParams();
@@ -27,6 +28,22 @@ export default function TicketPage() {
           throw new Error('Ticket not found or invalid ID');
         }
         const data = await res.json();
+
+        // Check if waiver declaration exists for this booking ID
+        try {
+          const waiverRes = await fetch(`/api/waivers/${id}`);
+          if (waiverRes.ok) {
+            const waiverData = await waiverRes.json();
+            if (waiverData && !waiverData.error) {
+              data.declarationAgreed = true;
+              data.ticketStatus = 'CONFIRMED';
+              data.waiverDetails = waiverData;
+            }
+          }
+        } catch (e) {
+          console.error("Waiver check error:", e);
+        }
+
         setBooking(data);
       } catch (err: any) {
         setError(formatSafeErrorMessage(err));
@@ -74,6 +91,18 @@ export default function TicketPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
+      <SEOHead
+        title={`Voucher #${booking?.id || id} | Joy Water Sports Varkala`}
+        description={`Digital booking voucher #${booking?.id || id} for ${booking?.firstName || 'Guest'} at Joy Water Sports Varkala, Papanasam Beach.`}
+        canonicalUrl={`https://joywatersports.com/ticket/${id}`}
+        schema={[
+          joyWaterSportsBusinessSchema,
+          createBreadcrumbSchema([
+            { name: 'Home', url: 'https://joywatersports.com' },
+            { name: `Booking Voucher #${booking?.id || id}`, url: `https://joywatersports.com/ticket/${id}` }
+          ])
+        ]}
+      />
       {/* Navbar with back navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 pt-4 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
         <div className="rounded-full px-6 py-3.5 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-xs flex items-center justify-between">
@@ -96,6 +125,8 @@ export default function TicketPage() {
                 <img 
                   src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx" 
                   alt="Joy Water Sports Logo" 
+                  loading="eager"
+                  decoding="async"
                   className="w-full h-full object-contain" 
                 />
               </div>
@@ -139,6 +170,28 @@ export default function TicketPage() {
                     BALANCE DUE ₹{remDue}
                   </span>
                 )}
+              </div>
+            </div>
+
+            {/* Declaration Authentication Status Banner */}
+            <div className="mt-4">
+              <div className="p-3 bg-emerald-50 border border-emerald-200/90 rounded-2xl flex items-center justify-between gap-3 text-emerald-950 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <Shield size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                      <span>✓ ONLINE BOOKING CONFIRMED</span>
+                    </p>
+                    <p className="text-[11px] font-semibold text-emerald-700">
+                      Verified Booking Ticket Pass • Joy Water Sports
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-emerald-600 text-white font-black px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0">
+                  VERIFIED
+                </span>
               </div>
             </div>
 
