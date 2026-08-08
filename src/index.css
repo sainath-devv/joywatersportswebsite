@@ -101,3 +101,76 @@
     }
   }
 }
+
+/* Print Media Styles for crisp, official document printing */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 8mm 8mm 8mm;
+  }
+
+  html, body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 10pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print\:hidden,
+  nav,
+  aside,
+  footer,
+  iframe,
+  .sidebar-container,
+  #chatbot-container {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+
+  .print\:inline-block {
+    display: inline-block !important;
+  }
+
+  .print\:flex {
+    display: flex !important;
+  }
+
+  /* Ensure input text shows filled values cleanly in print */
+  input, select, textarea {
+    color: #000000 !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+    border-color: #000000 !important;
+  }
+
+  /* Canvas signature printing support */
+  canvas {
+    max-width: 100% !important;
+    display: block !important;
+  }
+
+  .shadow-xl, .shadow-lg, .shadow-md, .shadow-sm, .shadow-2xs {
+    box-shadow: none !important;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .screen-only-hide-when-submitted {
+    display: block !important;
+  }
+}
+
+@media screen {
+  .screen-only-hide-when-submitted {
+    display: none !important;
+  }
+}
