@@ -111,6 +111,8 @@ export default function JoyPreloader({
             <img 
               src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx" 
               alt="JWS Logo" 
+              loading="eager"
+              decoding="async"
               className="w-full h-full object-contain relative z-10 bg-white"
             />
           </div>
