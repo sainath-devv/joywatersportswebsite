@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Sun, Clock, Waves, Shield, MapPin, ChevronRight, Anchor } from 'lucide-react';
 import Footer from '../components/common/Footer';
-import SEOHead, { joyWaterSportsBusinessSchema } from '../components/common/SEOHead';
+import SEOHead, { joyWaterSportsBusinessSchema, createBreadcrumbSchema } from '../components/common/SEOHead';
+import ResponsiveImage from '../components/common/ResponsiveImage';
 
 export default function VarkalaGuide() {
   const blogArticleSchema = {
@@ -18,6 +19,11 @@ export default function VarkalaGuide() {
     description: 'Complete guide on weather, ocean conditions, and best months for Parasailing, Jet Skiing, and water sports in Varkala, Kerala.'
   };
 
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', url: 'https://joywatersports.com' },
+    { name: 'Best Time to Visit Varkala', url: 'https://joywatersports.com/best-time-to-visit-varkala' }
+  ]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
       <SEOHead
@@ -25,17 +31,19 @@ export default function VarkalaGuide() {
         description="Planning a trip to Varkala? Learn about the best months, sea conditions, pricing, and top water sports activities on Papanasam Beach, Kerala."
         canonicalUrl="https://joywatersports.com/best-time-to-visit-varkala"
         keywords="best time to visit Varkala for water sports, Varkala weather water sports, Papanasam beach water sports season, Kerala beach holiday itinerary, Parasailing season Varkala"
-        schema={[joyWaterSportsBusinessSchema, blogArticleSchema]}
+        schema={[joyWaterSportsBusinessSchema, blogArticleSchema, breadcrumbSchema]}
       />
 
       {/* Header Banner */}
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <img
+            <ResponsiveImage
               src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx"
               alt="Joy Water Sports Logo"
               className="w-9 h-9 object-contain"
+              sizes="36px"
+              isPriority
             />
             <span className="font-extrabold text-lg text-white tracking-wide group-hover:text-[#00a6ff] transition-colors">
               JOY WATER SPORTS
@@ -69,10 +77,12 @@ export default function VarkalaGuide() {
 
         {/* Featured Image */}
         <div className="rounded-3xl overflow-hidden border border-slate-800 shadow-2xl aspect-[16/9]">
-          <img
+          <ResponsiveImage
             src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1200"
             alt="Varkala Papanasam Beach Coastline"
             className="w-full h-full object-cover"
+            sizes="(max-width: 896px) 100vw, 896px"
+            isPriority
           />
         </div>
 
