@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { 
   Plane, ArrowRight, ArrowLeft, Check, Camera, Video, 
   Aperture, LogOut, User, Menu, X, ShieldCheck, Award, Heart, Search, FileText, ExternalLink,
-  Ticket, Clock, CheckCircle, AlertCircle, Calendar, Users, Send, Phone, Mail, MessageSquare, CheckSquare, PhoneCall, ChevronDown
+  Ticket, Clock, CheckCircle, CheckCircle2, AlertCircle, Calendar, Users, Send, Phone, Mail, MessageSquare, CheckSquare, PhoneCall, ChevronDown, MapPin
 } from 'lucide-react';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import { ACTIVITY_PRICES, EXPERIENCES, formatTime } from '../utils/constants';
@@ -13,8 +13,8 @@ import VideoGallerySection from '../components/common/VideoGallerySection';
 import LazySection from '../components/common/LazySection';
 import HeroVectorVideo from '../components/common/HeroVectorVideo';
 import { formatSafeErrorMessage } from '../lib/errorHandler';
-import SignaturePad from '../components/common/SignaturePad';
 import SEOHead, { joyWaterSportsBusinessSchema } from '../components/common/SEOHead';
+import ResponsiveImage from '../components/common/ResponsiveImage';
 
 export default function LandingPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -446,7 +446,7 @@ export default function LandingPage() {
       phone: parsedPhone,
       totalAmount,
       guestName: `${formData.firstName} ${formData.lastName}`.trim(),
-      ticketStatus: 'PENDING_DECLARATION'
+      ticketStatus: 'CONFIRMED'
     };
 
     try {
@@ -542,10 +542,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col font-sans text-deep-blue overflow-x-hidden relative bg-foam-white">
       <SEOHead
-        title="Joy Water Sports Varkala | Best Water Sports in Varkala"
-        description="Book top-rated water sports in Varkala with Joy Water Sports Varkala! Best price for parasailing varkala, jet ski & speed boat. Unbeatable coastal adventure. Book now!"
+        title="Joy Water Sports Adventure Club Varkala | Parasailing & Beach Adventure Activities"
+        description="Official Joy Water Sports Adventure Club Varkala at Papanasam Beach. Top choice for parasailing in Varkala (₹2500), jet ski, speed boat, banana ride & adventure activities in Varkala."
         canonicalUrl="https://joywatersports.com"
-        keywords="Joy Water Sports Varkala, water sports in varkala, parasailing varkala, jet ski in varkala, varkala tourist places, adventure activities in varkala, varkala things to do, varkala places to visit, unique places to visit in varkala"
+        keywords="Adventure Club in joywatersports varkala parasailing, Joy Water Sports Varkala, adventure activities in varkala, parasailing varkala, adventure sports in varkala, jet ski in varkala, varkala tourist places, adventure club varkala, Papanasam beach water sports, unique places to visit in varkala"
+        preloadImages={[
+          'https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/parasailingmain.png',
+          'https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws1.png',
+          'https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws3.png'
+        ]}
         schema={[
           joyWaterSportsBusinessSchema,
           {
@@ -553,26 +558,34 @@ export default function LandingPage() {
             mainEntity: [
               {
                 '@type': 'Question',
-                name: 'Where is Joy Water Sports located in Varkala?',
+                name: 'Which is the best Adventure Club in Varkala for Parasailing?',
                 acceptedAnswer: {
                   '@type': 'Answer',
-                  text: 'Joy Water Sports is located directly on Papanasam Beach shoreline below North Cliff, Varkala, Kerala 695141.'
+                  text: 'Joy Water Sports Adventure Club at Papanasam Beach is the premier water sports center in Varkala for Parasailing, Jet Skiing, Speed Boat rides, Flying Fish, and coastal adventures.'
                 }
               },
               {
                 '@type': 'Question',
-                name: 'What activities are available at Joy Water Sports Varkala?',
+                name: 'What are the top adventure activities in Varkala?',
                 acceptedAnswer: {
                   '@type': 'Answer',
-                  text: 'We offer Parasailing, Jet Skiing, Flying Fish, Speed Boat rides, Banana Boat, Crazy Sofa, Doughnut Boat, and Beach ATV quad rides.'
+                  text: 'The top adventure activities in Varkala include Tandem Parasailing 300ft above the sea, high-speed Jet Skiing, Flying Fish tube rides, Speed Boat excursions, Banana rides, and Beach ATV quad rides.'
                 }
               },
               {
                 '@type': 'Question',
-                name: 'Is swimming required for water sports in Varkala?',
+                name: 'Where is Joy Water Sports Adventure Club located in Varkala?',
                 acceptedAnswer: {
                   '@type': 'Answer',
-                  text: 'No, swimming is NOT required! We provide certified high-buoyancy life jackets and double-certified safety mariners for all activities.'
+                  text: 'Joy Water Sports Adventure Club is located directly on Papanasam Beach shoreline below North Cliff, Varkala, Kerala 695141.'
+                }
+              },
+              {
+                '@type': 'Question',
+                name: 'Is swimming required for parasailing and adventure activities in Varkala?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'No, swimming is NOT required! We provide certified high-buoyancy life jackets, dual harness parasailing chutes, and double-certified safety mariners for all activities.'
                 }
               }
             ]
@@ -589,7 +602,7 @@ export default function LandingPage() {
         <div className="rounded-full px-5 sm:px-6 py-2.5 flex items-center justify-between relative bg-white/95 backdrop-blur-md border border-slate-200/60 shadow-lg shadow-black/5">
           {/* Logo */}
           <div className="flex items-center cursor-pointer group shrink-0" onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setMobileMenuOpen(false); }}>
-            <img src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx" alt="Logo" className="h-7 sm:h-8 w-auto object-contain" />
+            <ResponsiveImage src="https://lh3.googleusercontent.com/d/1lgPHCbInbPso1-uCrJq05TeR5XTZLmEx" alt="Joy Water Sports Varkala Logo" className="h-7 sm:h-8 w-auto object-contain" sizes="100px" isPriority />
           </div>
           
           {/* Desktop Navigation Links & Book Now Button (Centered with proper gap) */}
@@ -598,7 +611,7 @@ export default function LandingPage() {
             <button onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })} className="text-[14px] font-bold text-deep-blue hover:text-sky-blue transition-colors cursor-pointer whitespace-nowrap">Reviews</button>
             <Link to="/declaration" className="text-[14px] font-bold text-deep-blue hover:text-sky-blue transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1">
               <FileText size={15} className="text-sky-600" />
-              Declaration
+              Walk-In Declaration
             </Link>
             <button onClick={() => document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' })} className="bg-gradient-to-r from-sky-blue to-deep-blue hover:from-sky-blue hover:to-ocean-blue text-white px-5 py-2 rounded-full text-xs sm:text-sm font-bold shadow-md shadow-sky-blue/20 transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer whitespace-nowrap">Book Now</button>
           </div>
@@ -694,9 +707,15 @@ export default function LandingPage() {
           <p className="text-deep-blue/70 max-w-[650px] text-sm md:text-base leading-relaxed font-semibold">Feel the harmony, enjoy the comfort, admire the beautiful views and interiors. Our resort is one of the most suitable places for relaxation and unforgettable memories.</p>
         </div>
         <div className="w-full max-w-7xl mx-auto flex h-[300px] sm:h-[340px] md:h-[420px] lg:h-[520px] gap-1 px-2 sm:px-6 justify-center">
-          <div className="w-[25%] sm:w-[20%] md:w-[22%] h-full overflow-hidden border border-gray-100 shadow-sm rounded-l-2xl"><img loading="lazy" decoding="async" src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws1.png" alt="Joy Water Sports Varkala Jet Ski and Beach Activities" className="w-full h-full object-cover" /></div>
-          <div className="w-[50%] sm:w-[56%] md:w-[54%] h-full overflow-hidden border border-gray-100 shadow-sm"><img loading="lazy" decoding="async" src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/parasailingmain.png" alt="Parasailing Varkala at Papanasam Beach with Joy Water Sports" className="w-full h-full object-cover" /></div>
-          <div className="w-[25%] sm:w-[20%] md:w-[22%] h-full overflow-hidden border border-gray-100 shadow-sm rounded-r-2xl"><img loading="lazy" decoding="async" src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws3.png" alt="Speed boat and adventure activities in Varkala" className="w-full h-full object-cover" /></div>
+          <div className="w-[25%] sm:w-[20%] md:w-[22%] h-full overflow-hidden border border-gray-100 shadow-sm rounded-l-2xl">
+            <ResponsiveImage src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws1.png" alt="Joy Water Sports Varkala Jet Ski and Beach Activities" className="w-full h-full object-cover" sizes="(max-width: 640px) 25vw, (max-width: 1024px) 22vw, 300px" />
+          </div>
+          <div className="w-[50%] sm:w-[56%] md:w-[54%] h-full overflow-hidden border border-gray-100 shadow-sm">
+            <ResponsiveImage src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/parasailingmain.png" alt="Parasailing Varkala at Papanasam Beach with Joy Water Sports" className="w-full h-full object-cover" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 56vw, 700px" isPriority={true} />
+          </div>
+          <div className="w-[25%] sm:w-[20%] md:w-[22%] h-full overflow-hidden border border-gray-100 shadow-sm rounded-r-2xl">
+            <ResponsiveImage src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/jws3.png" alt="Speed boat and adventure activities in Varkala" className="w-full h-full object-cover" sizes="(max-width: 640px) 25vw, (max-width: 1024px) 22vw, 300px" />
+          </div>
         </div>
       </section>
 
@@ -714,7 +733,7 @@ export default function LandingPage() {
         <div ref={scrollContainerRef} className="flex overflow-x-auto overflow-y-hidden gap-4 sm:gap-6 w-full max-w-[1550px] pb-4 scrollbar-hide snap-x" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {EXPERIENCES.map((exp, index) => (
             <Link to={`/activity/${exp.id}`} key={index} className="relative w-[320px] sm:w-[350px] lg:w-[380px] shrink-0 aspect-[4/5] overflow-hidden group cursor-pointer shadow-sm snap-start block rounded-2xl" style={{ contentVisibility: 'auto', containIntrinsicSize: '320px 400px' }}>
-              <img src={exp.image} alt={`${exp.title} - Water sports in Varkala with Joy Water Sports`} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <ResponsiveImage src={exp.image} alt={`${exp.title} - Water sports in Varkala with Joy Water Sports`} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" sizes="(max-width: 640px) 320px, (max-width: 1024px) 350px, 380px" />
               <div className="absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-none animate-fade-in" />
               <div className="absolute bottom-0 left-0 w-full p-5 flex justify-between items-end gap-2">
                 <div className="flex flex-col items-start">
@@ -787,12 +806,11 @@ export default function LandingPage() {
            <div className="w-full lg:w-[45%] relative mx-auto h-[400px] sm:h-[500px]">
                {/* Main image */}
                <div className="w-full h-full rounded-2xl overflow-hidden shadow-sm bg-gray-100">
-                  <img 
+                  <ResponsiveImage 
                     src="https://ubitbdocjzffvfkketyr.supabase.co/storage/v1/object/public/JWS/JWS-WEBSITE/360cam.png" 
                     alt="Action Camera" 
-                    loading="lazy"
-                    decoding="async"
                     className="w-full h-full object-cover" 
+                    sizes="(max-width: 1024px) 100vw, 45vw"
                   />
                </div>
 
@@ -1180,6 +1198,36 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Location / Google Map Section */}
+      <section id="location-section" className="relative w-full flex flex-col items-center px-4 sm:px-6 py-12 bg-white border-t border-slate-200/80">
+        <div className="w-full max-w-5xl mx-auto flex flex-col items-center text-center mb-8">
+          <span className="text-sky-blue text-xs font-bold uppercase tracking-widest mb-2 inline-flex items-center gap-1.5 underline underline-offset-4 decoration-deep-blue decoration-2">
+            <MapPin size={14} className="text-sky-blue" />
+            <span>FIND US ON THE MAP</span>
+          </span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-display text-deep-blue leading-tight font-semibold">
+            Location & <span className="text-sky-blue">Directions</span>
+          </h2>
+          <p className="text-gray-500 font-medium text-xs sm:text-sm leading-relaxed mt-2 max-w-xl">
+            Joy Water Sports, Papanasam Beach Road, North Cliff / Helipad Area, Varkala, Kerala 695141
+          </p>
+        </div>
+
+        <div className="w-full max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-100">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3943.5696547299235!2d76.70598369999999!3d8.732349!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b05a8ad5d42fac1%3A0x5470c8d10f379f4b!2sJoy%20Water%20Sports%2C%20Varkala!5e0!3m2!1sen!2sin!4v1786209522309!5m2!1sen!2sin"
+            width="100%"
+            height="450"
+            style={{ border: 0 }}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            title="Joy Water Sports Varkala Google Map Location"
+            className="w-full h-[350px] sm:h-[450px] block"
+          />
+        </div>
+      </section>
+
       {/* Footer */}
       <Footer />
 
@@ -1211,24 +1259,13 @@ export default function LandingPage() {
 
             {/* Header Section */}
             <div className="text-center pt-2 pb-4">
-              <div className="w-12 h-12 mx-auto mb-3 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
-                <FileText size={26} />
+              <div className="w-12 h-12 mx-auto mb-3 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                <CheckCircle2 size={28} />
               </div>
-              <p className="text-[11px] tracking-widest uppercase text-sky-600 font-bold mb-1">Reservation Received</p>
-              <h1 className="text-xl font-bold text-slate-900 mb-1">Declaration Form Required</h1>
+              <p className="text-[11px] tracking-widest uppercase text-emerald-700 font-bold mb-1">Booking Confirmed</p>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Online Booking Successful!</h1>
               <p className="text-xs text-slate-500 leading-relaxed">
-                To confirm your booking and generate your ticket pass, please complete the Liability Declaration Form.
-              </p>
-            </div>
-
-            {/* Banner Alert */}
-            <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-left space-y-1">
-              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                <AlertCircle size={16} className="shrink-0 text-amber-600" />
-                <span>Action Required: Fill Declaration</span>
-              </div>
-              <p className="text-[11.5px] text-amber-800 leading-snug">
-                Your online booking is currently <strong className="underline">PENDING DECLARATION</strong>. Complete the declaration form now using the navbar or button below.
+                Your online reservation at Joy Water Sports Varkala is confirmed. Show your ticket pass when you arrive.
               </p>
             </div>
 
@@ -1256,18 +1293,6 @@ export default function LandingPage() {
 
             {/* CTA Buttons */}
             <div className="space-y-2.5">
-              {submittedEnquiry && (
-                <Link
-                  to={`/declaration?bookingId=${submittedEnquiry.bookingId}&name=${encodeURIComponent((submittedEnquiry.firstName + ' ' + submittedEnquiry.lastName).trim())}&phone=${encodeURIComponent(submittedEnquiry.phone)}&guests=${submittedEnquiry.guests}&date=${submittedEnquiry.date}`}
-                  onClick={() => setShowContactPopup(false)}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-sky-blue to-deep-blue hover:from-sky-blue hover:to-ocean-blue text-white font-bold text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <FileText size={16} />
-                  <span>Fill Declaration Form Now</span>
-                  <ArrowRight size={16} />
-                </Link>
-              )}
-
               {submittedEnquiry?.whatsappUrl && (
                 <a
                   href={submittedEnquiry.whatsappUrl}
@@ -1287,7 +1312,7 @@ export default function LandingPage() {
                   setEnquiryMessage('');
                 }}
               >
-                Close &amp; Complete Later
+                Close
               </button>
             </div>
           </div>
@@ -1434,7 +1459,7 @@ export default function LandingPage() {
                               </span>
                             ))
                           ) : (
-                            <span className="text-xs text-slate-600 font-medium">Standard Water Sports Package</span>
+                            <span className="text-xs text-slate-600 font-medium">Standard Water Sports Activity</span>
                           )}
                         </div>
                       </div>
