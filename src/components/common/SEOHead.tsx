@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import useRouteSEO from '../../hooks/useRouteSEO';
+import { useRouteSEO } from '../../hooks/useRouteSEO';
 
 interface SEOProps {
   title?: string;
